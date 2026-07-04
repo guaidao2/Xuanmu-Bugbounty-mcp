@@ -62,7 +62,7 @@ async def bb_cloud_check(
 
     for bucket_url in sorted(s3_candidates)[:10]:
         try:
-            resp = await client.get(f"https://{bucket_url}", timeout=5)
+            resp = await client.get(f"https://{bucket_url}")
             body = resp.text
             if resp.status_code == 200:
                 if "<ListBucketResult" in body or "<Contents>" in body:

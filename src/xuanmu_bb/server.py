@@ -58,6 +58,7 @@ from xuanmu_bb.tools.idor import bb_idor
 from xuanmu_bb.tools.session import bb_session
 from xuanmu_bb.tools.cloud_check import bb_cloud_check
 from xuanmu_bb.tools.waf_check import bb_waf_check
+from xuanmu_bb.tools.summary import bb_summary
 
 # ============================================================
 # MCP Server
@@ -76,13 +77,13 @@ async def tool_ping(target: str, timeout: int = 5, proxy: str = None, auth_token
 
 
 @mcp.tool(name="bb_port_scan", description="端口扫描 — TCP Connect 方式，支持 Top100/自定义端口范围")
-async def tool_port_scan(target: str, ports: str = "top100", timeout: int = 3, concurrent: int = 200, auth_token: str = None) -> str:
-    return await bb_port_scan(target, ports=ports, timeout=timeout, concurrent=concurrent, auth_token=auth_token)
+async def tool_port_scan(target: str, ports: str = "top100", timeout: int = 3, concurrent: int = 200) -> str:
+    return await bb_port_scan(target, ports=ports, timeout=timeout, concurrent=concurrent)
 
 
 @mcp.tool(name="bb_subdomain", description="子域名枚举 — DNS 批量解析 + 自定义字典")
-async def tool_subdomain(domain: str, wordlist: str = None, concurrent: int = 50, auth_token: str = None) -> str:
-    return await bb_subdomain(domain, wordlist=wordlist, concurrent=concurrent, auth_token=auth_token)
+async def tool_subdomain(domain: str, wordlist: str = None, concurrent: int = 50) -> str:
+    return await bb_subdomain(domain, wordlist=wordlist, concurrent=concurrent)
 
 
 @mcp.tool(name="bb_fingerprint", description="Web 指纹识别 — 技术栈/CMS/WAF 识别 + 绕过建议")
@@ -306,6 +307,11 @@ async def tool_cloud_check(url: str, proxy: str = None, cookie: str = None,
                            auth_token: str = None, timeout: int = 15) -> str:
     return await bb_cloud_check(url, proxy=proxy, cookie=cookie,
                                 auth_token=auth_token, timeout=timeout)
+
+
+@mcp.tool(name="bb_summary", description="扫描报告聚合 — 汇总资产发现与漏洞，生成结构化报告")
+async def tool_summary(url: str = "", findings: str = None) -> str:
+    return await bb_summary(url=url, findings=findings)
 
 
 @mcp.tool(name="bb_waf_check", description="WAF 指纹识别 — 检测 Cloudflare/阿里云/腾讯云等 14 种 WAF + 绕过建议 + 推荐扫描设置")

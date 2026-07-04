@@ -82,6 +82,7 @@ class HttpClient:
         files: Optional[dict] = None,
         headers: Optional[dict] = None,
         follow_redirects: bool = True,
+        **kwargs,
     ) -> httpx.Response:
         """发送 HTTP 请求"""
         await self._rate_limit()
@@ -95,6 +96,7 @@ class HttpClient:
                 files=files,
                 headers=headers,
                 follow_redirects=follow_redirects,
+                **kwargs,
             )
             self._last_request_time = time()
             return resp

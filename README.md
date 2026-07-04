@@ -84,7 +84,7 @@ bb_param_discover url="https://target.com"
 
 ---
 
-## 🧰 全部 38 个工具
+## 🧰 全部 39 个工具
 
 ### 🔍 侦察模块 (Reconnaissance)
 
@@ -262,7 +262,7 @@ src/xuanmu_bb/
 ├── vuln/                  # 漏洞检测模块（15 工具）
 ├── auth/                  # 认证安全模块（5 工具）
 ├── extract/               # 信息提取模块（5 工具）
-└── tools/                 # 工具模块（8 工具）
+└── tools/                 # 工具模块（9 工具）
 ```
 
 ---

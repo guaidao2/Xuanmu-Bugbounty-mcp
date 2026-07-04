@@ -223,6 +223,18 @@ async def bb_js_analyze(
         results.append("")
 
     if not any(findings.values()):
-        results.append("[-] 未发现有效信息")
+        results.append("[-] 自动分析未发现有效信息")
+        results.append("")
+        results.append("[*] JS 文件内容预览:")
+        results.append("    尝试手动检查以下 JS 文件中的硬编码内容:")
+        for js_url in js_urls:
+            try:
+                js_resp = await client.get(js_url, timeout=timeout)
+                js_content = js_resp.text[:300].replace(chr(10), " ").strip()
+                results.append(f"  {js_url} ({len(js_resp.text)} bytes)")
+                if js_content:
+                    results.append(f"    → {js_content[:150]}")
+            except Exception:
+                results.append(f"  {js_url} (获取失败)")
 
     return "\n".join(results)
