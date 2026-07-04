@@ -84,7 +84,7 @@ bb_param_discover url="https://target.com"
 
 ---
 
-## 🧰 全部 32 个工具
+## 🧰 全部 38 个工具
 
 ### 🔍 侦察模块 (Reconnaissance)
 
@@ -100,17 +100,18 @@ bb_param_discover url="https://target.com"
 
 | 工具 | 功能 | 参数 |
 |------|------|------|
-| `bb_sqli` | SQL 注入 — 报错/布尔/时间盲注 | url, params, method, auth_token, cookie |
-| `bb_xss` | XSS 检测 — 反射型/多种上下文 | url, params, method, auth_token, cookie |
-| `bb_ssti` | SSTI 模板注入 — 多引擎检测 | url, params, auth_token, cookie |
-| `bb_cmdi` | 命令注入 — 时间盲注+输出回显 | url, params, auth_token, cookie |
-| `bb_ssrf` | SSRF 检测 — 内网/云元数据/OOB | url, params, auth_token, cookie |
+| `bb_sqli` | SQL 注入 — 报错/布尔/时间盲注 | url, params, method, auth_token, cookie, waf_mode |
+| `bb_nosqli` | **NoSQL 注入** — MongoDB $ne/$gt/$regex | url, params, method, auth_token, cookie |
+| `bb_xss` | XSS 检测 — 反射型/多种上下文 | url, params, method, auth_token, cookie, waf_mode |
+| `bb_ssti` | SSTI 模板注入 — 多引擎检测 | url, params, auth_token, cookie, waf_mode |
+| `bb_cmdi` | 命令注入 — 时间盲注+输出回显 | url, params, auth_token, cookie, waf_mode |
+| `bb_ssrf` | SSRF 检测 — 内网/云元数据/OOB | url, params, auth_token, cookie, waf_mode |
 | `bb_cors` | CORS 跨域 — 12 种 Origin 测试 | url, auth_token, cookie |
 | `bb_open_redirect` | 开放重定向 — 参数扫描+跳转测试 | url, params, auth_token, cookie |
 | `bb_file_upload` | 文件上传绕过 — 实际上传+验证可访问 | url, auth_token, cookie |
 | `bb_csrf` | CSRF 检测 — Token/SameSite/Referer | url, auth_token, cookie |
 | `bb_xxe` | XXE 检测 — 经典/Blind/SVG/XInclude | url, auth_token, cookie |
-| `bb_lfi` | 路径遍历 — ../遍历/PHP filter | url, params, auth_token, cookie |
+| `bb_lfi` | 路径遍历 — ../遍历/PHP filter | url, params, auth_token, cookie, waf_mode |
 | `bb_host_inject` | Host 头注入 — 9 种攻击场景 | url, auth_token, cookie |
 | `bb_takeover` | 子域名接管 — CNAME+50+云服务匹配 | domain, auth_token |
 | `bb_race` | 条件竞争 — 并发请求+响应差异分析 | url, method, data, concurrent, auth_token, cookie |
@@ -133,6 +134,7 @@ bb_param_discover url="https://target.com"
 | `bb_secrets` | 敏感信息检测 — 20 种正则模式 | url, auth_token, cookie, check_js |
 | `bb_headers` | 安全头审计 — 8 项评分+修复建议 | url, auth_token, cookie |
 | `bb_param_discover` | **参数自动发现** — 提取表单/查询/JSON/JS | url, depth, auth_token, cookie |
+| `bb_js_analyze` | **JS 深度分析** — API路由/Sourcemap/硬编码/SPA/WebSocket | url, auth_token, cookie |
 
 ### 🧰 工具模块 (Utilities)
 
@@ -141,6 +143,10 @@ bb_param_discover url="https://target.com"
 | `bb_send` | 手工 HTTP 发包 — 自定义方法/头/Body | url, method, headers, body, auth_token, cookie |
 | `bb_payload` | Payload 工厂 — 9 类漏洞×6 种编码 | vuln_type, encode, count |
 | `bb_oob` | **OOB 外带辅助** — 生成回调标识/Payload | mode, callback_url |
+| `bb_idor` | **IDOR 越权检测** — 双 Token 对比 + 序号枚举 | url, token_owner, token_attacker, method, param |
+| `bb_cloud_check` | **云服务安全** — S3/元数据/云配置泄露 | url, auth_token, cookie |
+| `bb_waf_check` | **WAF 指纹识别** — 14 种 WAF + 绕过建议 | url, auth_token, cookie |
+| `bb_session` | **多步骤流程** — Session保持 + 请求链 | steps (JSON), proxy |
 | `bb_report` | 漏洞报告生成 — SRC 格式 Markdown | vuln_type, target, param, payload, impact |
 
 ---
@@ -188,28 +194,76 @@ bb_headers      url="https://example.com"
 bb_payload      vuln_type="xss" encode="all" count=20
 bb_send         url="https://example.com/api/login" method="POST" headers='{"Content-Type": "application/json"}' body='{"user":"admin","pass":"123"}'
 bb_report       vuln_type="sqli" target="https://example.com/page?id=1" payload="' OR 1=1 -- "
+
+# JS 深度分析
+bb_js_analyze   url="https://example.com" auth_token="..."
+
+# WAF 检测
+bb_waf_check    url="https://example.com"
+
+# IDOR 越权检测
+bb_idor         url="https://api.example.com/users/1234" \
+                token_owner="eyJ...owner_token..." \
+                token_attacker="eyJ...attacker_token..."
+
+# 多步骤流程
+bb_session      steps='[
+  {"method":"POST","url":"https://target.com/login","body":"user=admin&pass=test"},
+  {"method":"GET","url":"https://target.com/api/profile"}
+]'
+
+# 云服务检测
+bb_cloud_check  url="https://example.com"
+
+# 参数自动发现 + NoSQL 注入
+bb_param_discover url="https://example.com/api"
+bb_nosqli       url="https://example.com/api/user?id=1"
 ```
 
 ---
 
-## 🏗️ 项目结构
+## 🛡️ WAF 防护引擎
+
+支持 WAF 检测的扫描工具（sqli/xss/ssti/cmdi/ssrf/lfi/dir_scan）自动集成：
+
+| 参数 | 默认值 | 说明 |
+|------|--------|------|
+| `waf_mode` | `safe` | `off`（不管）/ `safe`（降速+轮换UA）/ `aggressive`（尝试绕过） |
+| `max_retries_on_block` | `3` | 被拦截后重试次数，超限自动熔断 |
+| `request_delay` | `auto` | `auto`=检测到WAF后从0.5s升到3s，也可手动指定秒数 |
+
+**工作流程:**
+```
+1. 预检 — 发无害请求检测 WAF 指纹
+2. 发现 WAF → 自动降速 + 轮换 UA + 提示绕过建议
+3. 扫描中 — 实时检测拦截页面 (403/503/验证页)
+4. 熔断 — 连续 N 次被拦截 → 自动中断 → 输出熔断报告
+```
+
+先检测 WAF：
+```bash
+bb_waf_check url="https://target.com"
+```
+
+带 WAF 防护扫描：
+```bash
+bb_sqli url="https://target.com/page?id=1" waf_mode="safe" request_delay="3"
+```
 
 ```
-src/xuanmu_bb/
-├── server.py              # MCP 入口（30 个工具注册）
+server.py              # MCP 入口（38 个工具注册）
 ├── client.py              # HTTP 客户端（代理/Cookie/UA轮换/反封策略）
 ├── utils.py               # 公共工具函数
 ├── data/                  # 内置数据（Payload 字典/指纹/WAF库/正则模式）
 ├── recon/                 # 侦察模块（5 工具）
-├── vuln/                  # 漏洞检测模块（14 工具）
+├── vuln/                  # 漏洞检测模块（15 工具）
 ├── auth/                  # 认证安全模块（5 工具）
-├── extract/               # 信息提取模块（3 工具）
-└── tools/                 # 工具模块（2 工具）
-```
+├── extract/               # 信息提取模块（5 工具）
+└── tools/                 # 工具模块（8 工具）
 
 ---
 
-## 🧪 技术特点
+## 🧪 技术特点## 🧪 技术特点
 
 - **完全自包含** — 不依赖 nmap/nuclei/burp 等外部工具，纯 Python 实现
 - **零外部扫描器依赖** — 不依赖 yakit/tscanplus/nuclei，独立运行

@@ -4,6 +4,7 @@ from typing import Optional
 
 import time
 from ..client import HttpClient
+from ..data.waf import waf_precheck
 from ..data import SSRF_PAYLOADS
 from ..utils import normalize_url
 from urllib.parse import urlencode, urlparse, parse_qs, urlunparse
@@ -15,6 +16,9 @@ async def bb_ssrf(
     proxy: Optional[str] = None,
     cookie: Optional[str] = None, auth_token: Optional[str] = None,
     timeout: int = 10,
+    waf_mode: str = "safe",
+    max_retries_on_block: int = 3,
+    request_delay: float = 0.5,
 ) -> str:
     """
     SSRF 检测 — 内网地址探测 + 协议转换
@@ -37,6 +41,16 @@ async def bb_ssrf(
     results.append("")
 
     client = HttpClient(timeout=timeout, proxy=proxy, cookie=cookie, auth_token=auth_token)
+    # WAF 预检
+    if waf_mode != "off":
+        _w = await waf_precheck(url, waf_mode=waf_mode, request_delay=request_delay, proxy=proxy, cookie=cookie, auth_token=auth_token)
+        if _w["waf_detected"]:
+            _wn = _w.get("waf_name","")
+    _wd = _w.get("delay",0)
+    results.append(f"[!] WAF 检测: " + _wn + " 自动降速至 " + str(_wd) + "s")
+    for s in _w["suggestions"]:
+        results.append(f"    绕过: " + s)
+
 
     test_params = [p.strip() for p in params.split(",") if p.strip()]
     if not test_params:

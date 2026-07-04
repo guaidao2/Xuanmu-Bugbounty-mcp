@@ -245,3 +245,39 @@ class WafCircuitBreaker:
     def reset(self):
         self.block_count = 0
         self.is_open = False
+
+
+async def waf_precheck(
+    url: str,
+    waf_mode: str = "safe",
+    request_delay: float = 0.5,
+    proxy: Optional[str] = None,
+    cookie: Optional[str] = None,
+    auth_token: Optional[str] = None,
+) -> dict:
+    """
+    WAF 预检 — 被各扫描工具在开始时调用
+
+    Returns:
+        {"waf_detected": bool, "waf_name": str, "delay": float, "suggestions": list}
+    """
+    result = {"waf_detected": False, "waf_name": "", "delay": request_delay, "suggestions": []}
+
+    if waf_mode == "off":
+        return result
+
+    waf = await detect_waf(url, proxy=proxy, cookie=cookie, auth_token=auth_token, timeout=8)
+
+    if waf["detected"]:
+        result["waf_detected"] = True
+        result["waf_name"] = waf["name"]
+        # Auto slow down
+        if request_delay == 0.5:
+            result["delay"] = 3.0
+        else:
+            result["delay"] = max(request_delay, 2.0)
+        result["suggestions"] = waf.get("bypass", [])
+    else:
+        result["delay"] = request_delay
+
+    return result

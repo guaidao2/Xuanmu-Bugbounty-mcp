@@ -6,6 +6,7 @@ from typing import Optional
 import time
 from ..client import HttpClient
 from ..data import DIR_DICT
+from ..data.waf import waf_precheck
 from ..utils import normalize_url
 
 
@@ -74,6 +75,16 @@ async def bb_dir_scan(
     results.append("")
 
     client = HttpClient(timeout=timeout, proxy=proxy, cookie=cookie, delay=0.05, auth_token=auth_token)
+    # WAF 预检
+    if waf_mode != "off":
+        _w = await waf_precheck(base_url, waf_mode=waf_mode, request_delay=request_delay, proxy=proxy, cookie=cookie, auth_token=auth_token)
+        if _w["waf_detected"]:
+            _wn = _w.get("waf_name","")
+    _wd = _w.get("delay",0)
+    results.append(f"[!] WAF 检测: " + _wn + " 自动降速至 " + str(_wd) + "s")
+    for s in _w["suggestions"]:
+        results.append(f"    绕过: " + s)
+
     sem = asyncio.Semaphore(concurrent)
 
     tasks = [_check_path(client, base_url, p, sem, timeout) for p in paths]

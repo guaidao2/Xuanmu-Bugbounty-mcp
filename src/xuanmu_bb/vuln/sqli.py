@@ -6,6 +6,7 @@ from typing import Optional
 
 import time
 from ..client import HttpClient
+from ..data.waf import waf_precheck
 from ..data import SQLI_PAYLOADS
 from ..utils import normalize_url
 
@@ -18,6 +19,9 @@ async def bb_sqli(
     cookie: Optional[str] = None, auth_token: Optional[str] = None,
     timeout: int = 15,
     delay: float = 0.5,
+    waf_mode: str = "safe",
+    max_retries_on_block: int = 3,
+    request_delay: float = 0.5,
 ) -> str:
     """
     SQL 注入检测 — 报错/布尔/时间盲注
@@ -42,6 +46,16 @@ async def bb_sqli(
     results.append("")
 
     client = HttpClient(timeout=timeout, proxy=proxy, cookie=cookie, delay=delay, auth_token=auth_token)
+    # WAF 预检
+    if waf_mode != "off":
+        _w = await waf_precheck(url, waf_mode=waf_mode, request_delay=request_delay, proxy=proxy, cookie=cookie, auth_token=auth_token)
+        if _w["waf_detected"]:
+            _wn = _w.get("waf_name","")
+    _wd = _w.get("delay",0)
+    results.append(f"[!] WAF 检测: " + _wn + " 自动降速至 " + str(_wd) + "s")
+    for s in _w["suggestions"]:
+        results.append(f"    绕过: " + s)
+
 
     # 自动检测表单 method：先获取页面，检查是否有 POST 表单
     _auto_method = method.upper()
