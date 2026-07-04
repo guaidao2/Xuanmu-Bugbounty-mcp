@@ -61,7 +61,30 @@ python "绝对路径/src/xuanmu_bb/server.py"
 
 ---
 
-## 🧰 全部 30 个工具
+## 🔐 认证方式（两种都支持）
+
+目标需要登录？所有 HTTP 工具都支持两种认证：
+
+| 方式 | 参数 | 适用场景 |
+|------|------|---------|
+| Bearer Token | `auth_token="xxx"` | JWT / OAuth2 令牌登录的系统 |
+| Session Cookie | `cookie="SESSION=xxx"` | 表单登录 / PHP/Java Session 的系统 |
+
+```bash
+# Bearer Token（API 认证）
+bb_sqli url="https://target.com/api/search" params="q" auth_token="eyJhbGciOiJIUzI1NiIs..."
+
+# Session Cookie（Web 认证）
+bb_xss url="https://target.com/search" params="q" cookie="JSESSIONID=ABCD1234"
+
+# 先探测认证状态
+bb_param_discover url="https://target.com"
+# 输出会标注: [AUTH: required] HTTP 401 或 [AUTH: none] HTTP 200
+```
+
+---
+
+## 🧰 全部 32 个工具
 
 ### 🔍 侦察模块 (Reconnaissance)
 
@@ -70,27 +93,27 @@ python "绝对路径/src/xuanmu_bb/server.py"
 | `bb_ping` | 存活探测 — TCP + HTTP 双重检测 | target, timeout, proxy |
 | `bb_port_scan` | 端口扫描 — Top100/自定义范围 | target, ports, timeout, concurrent |
 | `bb_subdomain` | 子域名枚举 — DNS 批量解析 | domain, wordlist, concurrent |
-| `bb_fingerprint` | Web 指纹识别 — 技术栈/CMS/WAF | url, proxy, cookie |
-| `bb_dir_scan` | 目录爆破 — 内置 150+ 敏感路径 | url, wordlist, status_filter, concurrent |
+| `bb_fingerprint` | Web 指纹识别 — 技术栈/CMS/WAF | url, proxy, cookie, auth_token |
+| `bb_dir_scan` | 目录爆破 — 内置 150+ 敏感路径 | url, wordlist, status_filter, concurrent, cookie, auth_token |
 
 ### 🔥 漏洞检测模块 (Vulnerability Detection)
 
 | 工具 | 功能 | 参数 |
 |------|------|------|
-| `bb_sqli` | SQL 注入 — 报错/布尔/时间盲注 | url, params, method, proxy, cookie |
-| `bb_xss` | XSS 检测 — 反射型/多种上下文 | url, params, method, proxy, cookie |
-| `bb_ssti` | SSTI 模板注入 — 多引擎检测 | url, params, proxy, cookie |
-| `bb_cmdi` | 命令注入 — 时间盲注+输出回显 | url, params, proxy, cookie |
-| `bb_ssrf` | SSRF 检测 — 内网/云元数据/OOB | url, params, proxy, cookie |
-| `bb_cors` | CORS 跨域 — 12 种 Origin 测试 | url, proxy, cookie |
-| `bb_open_redirect` | 开放重定向 — 参数扫描+跳转测试 | url, params, proxy, cookie |
-| `bb_file_upload` | 文件上传绕过 — 扩展名/MIME/截断 | url, proxy, cookie |
-| `bb_csrf` | CSRF 检测 — Token/SameSite/Referer | url, proxy, cookie |
-| `bb_xxe` | XXE 检测 — 经典/Blind/SVG/XInclude | url, proxy, cookie |
-| `bb_lfi` | 路径遍历 — ../遍历/PHP filter | url, params, proxy, cookie |
-| `bb_host_inject` | Host 头注入 — 9 种攻击场景 | url, proxy, cookie |
-| `bb_takeover` | 子域名接管 — CNAME+50+云服务匹配 | domain, proxy |
-| `bb_race` | 条件竞争 — 并发请求+响应差异分析 | url, method, data, concurrent |
+| `bb_sqli` | SQL 注入 — 报错/布尔/时间盲注 | url, params, method, auth_token, cookie |
+| `bb_xss` | XSS 检测 — 反射型/多种上下文 | url, params, method, auth_token, cookie |
+| `bb_ssti` | SSTI 模板注入 — 多引擎检测 | url, params, auth_token, cookie |
+| `bb_cmdi` | 命令注入 — 时间盲注+输出回显 | url, params, auth_token, cookie |
+| `bb_ssrf` | SSRF 检测 — 内网/云元数据/OOB | url, params, auth_token, cookie |
+| `bb_cors` | CORS 跨域 — 12 种 Origin 测试 | url, auth_token, cookie |
+| `bb_open_redirect` | 开放重定向 — 参数扫描+跳转测试 | url, params, auth_token, cookie |
+| `bb_file_upload` | 文件上传绕过 — 实际上传+验证可访问 | url, auth_token, cookie |
+| `bb_csrf` | CSRF 检测 — Token/SameSite/Referer | url, auth_token, cookie |
+| `bb_xxe` | XXE 检测 — 经典/Blind/SVG/XInclude | url, auth_token, cookie |
+| `bb_lfi` | 路径遍历 — ../遍历/PHP filter | url, params, auth_token, cookie |
+| `bb_host_inject` | Host 头注入 — 9 种攻击场景 | url, auth_token, cookie |
+| `bb_takeover` | 子域名接管 — CNAME+50+云服务匹配 | domain, auth_token |
+| `bb_race` | 条件竞争 — 并发请求+响应差异分析 | url, method, data, concurrent, auth_token, cookie |
 
 ### 🔐 认证安全模块 (Authentication Security)
 
@@ -100,22 +123,24 @@ python "绝对路径/src/xuanmu_bb/server.py"
 | `bb_jwt_analyze` | JWT 安全分析 — 漏洞检测+攻击建议 | token |
 | `bb_jwt_crack` | JWT 密钥爆破 — HMAC 字典攻击 | token, wordlist |
 | `bb_jwt_attack` | JWT 攻击 — None/KID注入/算法混淆 | token, mode, payload_override, public_key |
-| `bb_graphql` | GraphQL 扫描 — Introspection/批量/递归 | url, proxy, cookie |
+| `bb_graphql` | GraphQL 扫描 — Introspection/批量/递归 | url, auth_token, cookie |
 
 ### 📋 信息提取模块 (Information Extraction)
 
 | 工具 | 功能 | 参数 |
 |------|------|------|
-| `bb_extract` | URL/Endpoint 提取 — HTML+JS分析 | url, depth, proxy, cookie |
-| `bb_secrets` | 敏感信息检测 — 20 种正则模式 | url, proxy, cookie, check_js |
-| `bb_headers` | 安全头审计 — 8 项评分+修复建议 | url, proxy, cookie |
+| `bb_extract` | URL/Endpoint 提取 — HTML+JS分析 | url, depth, auth_token, cookie |
+| `bb_secrets` | 敏感信息检测 — 20 种正则模式 | url, auth_token, cookie, check_js |
+| `bb_headers` | 安全头审计 — 8 项评分+修复建议 | url, auth_token, cookie |
+| `bb_param_discover` | **参数自动发现** — 提取表单/查询/JSON/JS | url, depth, auth_token, cookie |
 
 ### 🧰 工具模块 (Utilities)
 
 | 工具 | 功能 | 参数 |
 |------|------|------|
+| `bb_send` | 手工 HTTP 发包 — 自定义方法/头/Body | url, method, headers, body, auth_token, cookie |
 | `bb_payload` | Payload 工厂 — 9 类漏洞×6 种编码 | vuln_type, encode, count |
-| `bb_send` | 手工 HTTP 发包 — 自定义方法/头/Body | url, method, headers, body, proxy, cookie |
+| `bb_oob` | **OOB 外带辅助** — 生成回调标识/Payload | mode, callback_url |
 | `bb_report` | 漏洞报告生成 — SRC 格式 Markdown | vuln_type, target, param, payload, impact |
 
 ---
@@ -201,4 +226,4 @@ src/xuanmu_bb/
 
 ---
 
-**Xuanmu-BugBounty-mcp** © 2024 玄幕安全团队 · guaidao2
+**Xuanmu-BugBounty-mcp** © 2026 玄幕安全团队 · guaidao2
