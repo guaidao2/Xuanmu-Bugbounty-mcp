@@ -129,21 +129,24 @@ async def tool_xss(url: str, params: str = "", method: str = "GET",
 
 
 @mcp.tool(name="bb_ssti", description="SSTI 模板注入检测 — Jinja2/Twig/FreeMarker/Velocity/ERB/Smarty")
-async def tool_ssti(url: str, params: str = "",
-                    proxy: str = None, cookie: str = None, auth_token: str = None, timeout: int = 15) -> str:
-    return await bb_ssti(url, params=params, proxy=proxy, cookie=cookie, timeout=timeout, auth_token=auth_token)
+async def tool_ssti(url: str, params: str = "", method: str = "GET",
+                    proxy: str = None, cookie: str = None, auth_token: str = None, timeout: int = 15,
+                    body: str = "") -> str:
+    return await bb_ssti(url, params=params, method=method, proxy=proxy, cookie=cookie, timeout=timeout, auth_token=auth_token, body=body)
 
 
 @mcp.tool(name="bb_cmdi", description="命令注入检测 — 时间盲注 + 输出回显")
-async def tool_cmdi(url: str, params: str = "",
-                    proxy: str = None, cookie: str = None, auth_token: str = None, timeout: int = 15) -> str:
-    return await bb_cmdi(url, params=params, proxy=proxy, cookie=cookie, timeout=timeout, auth_token=auth_token)
+async def tool_cmdi(url: str, params: str = "", method: str = "GET",
+                    proxy: str = None, cookie: str = None, auth_token: str = None, timeout: int = 15,
+                    body: str = "") -> str:
+    return await bb_cmdi(url, params=params, method=method, proxy=proxy, cookie=cookie, timeout=timeout, auth_token=auth_token, body=body)
 
 
 @mcp.tool(name="bb_ssrf", description="SSRF 检测 — 内网地址探测 + 协议转换 + OOB 提示")
-async def tool_ssrf(url: str, params: str = "",
-                    proxy: str = None, cookie: str = None, auth_token: str = None, timeout: int = 10) -> str:
-    return await bb_ssrf(url, params=params, proxy=proxy, cookie=cookie, timeout=timeout, auth_token=auth_token)
+async def tool_ssrf(url: str, params: str = "", method: str = "GET",
+                    proxy: str = None, cookie: str = None, auth_token: str = None, timeout: int = 10,
+                    body: str = "") -> str:
+    return await bb_ssrf(url, params=params, method=method, proxy=proxy, cookie=cookie, timeout=timeout, auth_token=auth_token, body=body)
 
 
 @mcp.tool(name="bb_cors", description="CORS 跨域检测 — 12 种 Origin 反射测试 + 预检请求 + 凭据配置分析")
@@ -168,14 +171,16 @@ async def tool_csrf(url: str, proxy: str = None, cookie: str = None, auth_token:
 
 
 @mcp.tool(name="bb_xxe", description="XXE 检测 — 经典/Blind OOB/XInclude/SVG 多 Payload 测试")
-async def tool_xxe(url: str, proxy: str = None, cookie: str = None, auth_token: str = None, timeout: int = 15, content_type: str = "application/xml") -> str:
-    return await bb_xxe(url, proxy=proxy, cookie=cookie, timeout=timeout, content_type=content_type, auth_token=auth_token)
+async def tool_xxe(url: str, proxy: str = None, cookie: str = None, auth_token: str = None, timeout: int = 15,
+                    body: str = "", content_type: str = "application/xml") -> str:
+    return await bb_xxe(url, proxy=proxy, cookie=cookie, timeout=timeout, body=body, content_type=content_type, auth_token=auth_token)
 
 
 @mcp.tool(name="bb_lfi", description="LFI 路径遍历检测 — 多种遍历/PHP filter 测试")
-async def tool_lfi(url: str, params: str = "",
-                   proxy: str = None, cookie: str = None, auth_token: str = None, timeout: int = 15) -> str:
-    return await bb_lfi(url, params=params, proxy=proxy, cookie=cookie, timeout=timeout, auth_token=auth_token)
+async def tool_lfi(url: str, params: str = "", method: str = "GET",
+                   proxy: str = None, cookie: str = None, auth_token: str = None, timeout: int = 15,
+                   body: str = "") -> str:
+    return await bb_lfi(url, params=params, method=method, proxy=proxy, cookie=cookie, timeout=timeout, auth_token=auth_token, body=body)
 
 
 @mcp.tool(name="bb_host_inject", description="Host 头注入检测 — Host 覆盖/XFH/Forwarded/重复 Host 等 9 种测试")

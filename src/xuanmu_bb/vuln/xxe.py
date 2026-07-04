@@ -12,6 +12,7 @@ async def bb_xxe(
     cookie: Optional[str] = None, auth_token: Optional[str] = None,
     timeout: int = 15,
     content_type: str = "application/xml",
+    body: str = "",
 ) -> str:
     """
     XXE 检测 — XML 外部实体注入检测
@@ -103,9 +104,10 @@ async def bb_xxe(
     findings = []
     for entry in xxe_payloads:
         try:
+            _xml_body = body if body else entry["data"]
             resp = await client.post(
                 url,
-                data=entry["data"],
+                data=_xml_body,
                 headers={"Content-Type": content_type},
             )
             body = resp.text

@@ -19,6 +19,8 @@ async def bb_cmdi(
     waf_mode: str = "safe",
     max_retries_on_block: int = 3,
     request_delay: float = 0.5,
+    method: str = "GET",
+    body: str = "",
 ) -> str:
     """
     命令注入检测 — 时间盲注 + 输出回显
@@ -84,7 +86,10 @@ async def bb_cmdi(
                 new_url = urlunparse(parsed._replace(query=new_qs))
 
                 t1 = asyncio.get_event_loop().time()
-                resp = await client.get(new_url)
+                if method.upper() == "POST":
+                    resp = await client.post(url, data=body or {param: payload})
+                else:
+                    resp = await client.get(new_url)
                 t2 = asyncio.get_event_loop().time()
                 resp_time = t2 - t1
                 body = resp.text

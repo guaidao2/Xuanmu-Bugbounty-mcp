@@ -19,6 +19,8 @@ async def bb_ssti(
     waf_mode: str = "safe",
     max_retries_on_block: int = 3,
     request_delay: float = 0.5,
+    method: str = "GET",
+    body: str = "",
 ) -> str:
     """
     SSTI 检测 — 多模板引擎盲检测
@@ -79,7 +81,10 @@ async def bb_ssti(
                 qs[param] = [payload]
                 new_qs = urlencode(qs, doseq=True)
                 new_url = urlunparse(parsed._replace(query=new_qs))
-                resp = await client.get(new_url)
+                if method.upper() == "POST":
+                    resp = await client.post(url, data=body or {param: payload})
+                else:
+                    resp = await client.get(new_url)
                 body = resp.text
 
                 # 检测 7*7=49 计算

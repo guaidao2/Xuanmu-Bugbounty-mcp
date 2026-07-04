@@ -19,6 +19,8 @@ async def bb_ssrf(
     waf_mode: str = "safe",
     max_retries_on_block: int = 3,
     request_delay: float = 0.5,
+    method: str = "GET",
+    body: str = "",
 ) -> str:
     """
     SSRF 检测 — 内网地址探测 + 协议转换
@@ -83,7 +85,10 @@ async def bb_ssrf(
                 qs[param] = [ssrf_url]
                 new_qs = urlencode(qs, doseq=True)
                 new_url = urlunparse(parsed._replace(query=new_qs))
-                resp = await client.get(new_url)
+                if method.upper() == "POST":
+                    resp = await client.post(url, data=body or {param: ssrf_url})
+                else:
+                    resp = await client.get(new_url)
                 body = resp.text.lower()
 
                 # 检测回显内容变化

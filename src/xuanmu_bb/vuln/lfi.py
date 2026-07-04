@@ -18,6 +18,8 @@ async def bb_lfi(
     waf_mode: str = "safe",
     max_retries_on_block: int = 3,
     request_delay: float = 0.5,
+    method: str = "GET",
+    body: str = "",
 ) -> str:
     """
     LFI 路径遍历检测
@@ -78,7 +80,10 @@ async def bb_lfi(
                 qs[param] = [payload]
                 new_qs = urlencode(qs, doseq=True)
                 new_url = urlunparse(parsed._replace(query=new_qs))
-                resp = await client.get(new_url)
+                if method.upper() == "POST":
+                    resp = await client.post(url, data=body or {param: payload})
+                else:
+                    resp = await client.get(new_url)
                 body = resp.text
 
                 indicators = []
