@@ -288,10 +288,12 @@ async def tool_oob(mode: str = "generate", callback_url: str = None) -> str:
 
 @mcp.tool(name="bb_idor", description="IDOR 越权检测 — 双 Token 对比 + 序号枚举，检测水平/垂直越权")
 async def tool_idor(url: str, token_owner: str = "", token_attacker: str = "",
+                    cookie_owner: str = "", cookie_attacker: str = "",
                     method: str = "GET", param: str = "",
                     range_start: int = 1, range_end: int = 10,
                     proxy: str = None, timeout: int = 15) -> str:
     return await bb_idor(url, token_owner=token_owner, token_attacker=token_attacker,
+                         cookie_owner=cookie_owner, cookie_attacker=cookie_attacker,
                          method=method, param=param,
                          range_start=range_start, range_end=range_end,
                          proxy=proxy, timeout=timeout)
