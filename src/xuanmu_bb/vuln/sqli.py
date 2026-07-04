@@ -4,6 +4,7 @@ import asyncio
 import re
 from typing import Optional
 
+import time
 from ..client import HttpClient
 from ..data import SQLI_PAYLOADS
 from ..utils import normalize_url

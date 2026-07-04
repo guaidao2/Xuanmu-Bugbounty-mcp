@@ -190,7 +190,7 @@ async def tool_jwt_analyze(token: str) -> str:
     return await bb_jwt_analyze(token)
 
 
-@mcp.tool(name="bb_jwt_crack", description="JWT 暴力破解 — 尝试破解 HMAC 密钥")
+@mcp.tool(name="bb_jwt_crack", description="JWT 暴力破解 — 尝试破解 HMAC 密钥，不传 wordlist 则自动使用内置 Top 100+ 弱密钥字典")
 async def tool_jwt_crack(token: str, wordlist: str = "") -> str:
     return await bb_jwt_crack(token, wordlist=wordlist)
 

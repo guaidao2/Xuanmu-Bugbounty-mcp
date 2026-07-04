@@ -83,8 +83,13 @@ async def bb_cmdi(
 
                 # 输出回显
                 if ptype == "output":
+                    # 检查是否是反射（payload 原文出现在响应中）
+                    is_reflection = payload.strip(";|&`$() ") in body
                     if "xuanmu_test_" in body or "uid=" in body or "root:" in body:
-                        indicators.append("命令输出回显")
+                        if is_reflection:
+                            indicators.append("参数反射回显 (LOW — 仅为参数回显，非命令执行)")
+                        else:
+                            indicators.append("命令输出回显 (HIGH — 确认命令执行)")
 
                 if indicators:
                     findings.append({
