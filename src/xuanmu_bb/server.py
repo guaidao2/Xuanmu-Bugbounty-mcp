@@ -28,6 +28,8 @@ from xuanmu_bb.vuln.cors import bb_cors
 from xuanmu_bb.vuln.open_redirect import bb_open_redirect
 from xuanmu_bb.vuln.file_upload import bb_file_upload
 
+from xuanmu_bb.vuln.nosqli import bb_nosqli
+
 # ── Vuln Enhanced ──
 from xuanmu_bb.vuln.csrf import bb_csrf
 from xuanmu_bb.vuln.xxe import bb_xxe
@@ -51,6 +53,7 @@ from xuanmu_bb.tools.payload_factory import bb_payload
 from xuanmu_bb.tools.report import bb_report
 from xuanmu_bb.tools.request import bb_send
 from xuanmu_bb.tools.oob import bb_oob
+from xuanmu_bb.tools.idor import bb_idor
 
 # ============================================================
 # MCP Server
@@ -93,6 +96,14 @@ async def tool_dir_scan(url: str, wordlist: str = None, status_filter: str = "20
 # ╔══════════════════════════════════════════════════════════════╗
 # ║  漏洞检测模块 (Vulnerability Detection)                      ║
 # ╚══════════════════════════════════════════════════════════════╝
+
+
+@mcp.tool(name="bb_nosqli", description="NoSQL 注入检测 — MongoDB \$ne/\$gt/\$regex 等 Payload")
+async def tool_nosqli(url: str, params: str = "", method: str = "GET",
+                      proxy: str = None, cookie: str = None, auth_token: str = None,
+                      timeout: int = 15) -> str:
+    return await bb_nosqli(url, params=params, method=method,
+                           proxy=proxy, cookie=cookie, auth_token=auth_token, timeout=timeout)
 
 
 @mcp.tool(name="bb_sqli", description="SQL 注入检测 — 报错/布尔/时间盲注三种模式")
@@ -261,6 +272,17 @@ async def tool_send(url: str, method: str = "GET", headers: str = None, body: st
 @mcp.tool(name="bb_oob", description="OOB 外带检测辅助 — 生成回调标识/Payload 建议，用于 Blind SSRF/XXE/RCE 验证")
 async def tool_oob(mode: str = "generate", callback_url: str = None) -> str:
     return await bb_oob(mode=mode, callback_url=callback_url)
+
+
+@mcp.tool(name="bb_idor", description="IDOR 越权检测 — 双 Token 对比 + 序号枚举，检测水平/垂直越权")
+async def tool_idor(url: str, token_owner: str = "", token_attacker: str = "",
+                    method: str = "GET", param: str = "",
+                    range_start: int = 1, range_end: int = 10,
+                    proxy: str = None, timeout: int = 15) -> str:
+    return await bb_idor(url, token_owner=token_owner, token_attacker=token_attacker,
+                         method=method, param=param,
+                         range_start=range_start, range_end=range_end,
+                         proxy=proxy, timeout=timeout)
 
 
 # ╔══════════════════════════════════════════════════════════════╗
