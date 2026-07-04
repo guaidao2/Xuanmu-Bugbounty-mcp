@@ -99,7 +99,7 @@ async def tool_dir_scan(url: str, wordlist: str = None, status_filter: str = "20
 async def tool_sqli(url: str, params: str = "", method: str = "GET",
                     proxy: str = None, cookie: str = None, auth_token: str = None, timeout: int = 15, delay: float = 0.5) -> str:
     return await bb_sqli(url, params=params, method=method,
-                         proxy=proxy, cookie=cookie, timeout=timeout, delay=delay)
+                         proxy=proxy, cookie=cookie, timeout=timeout, delay=delay, auth_token=auth_token)
 
 
 @mcp.tool(name="bb_xss", description="XSS 检测 — 反射型 XSS，多种上下文/事件/属性 Payload")
