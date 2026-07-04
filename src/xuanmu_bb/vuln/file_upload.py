@@ -164,11 +164,18 @@ async def bb_file_upload(
                         except Exception:
                             continue
                     else:
-                        results.append(f"  [{status}] {test_name}: {filename}（未找到文件路径）")
+                        # 区分 500 和普通失败
+                        if status == 500:
+                            results.append(f"  [{status}] {test_name}: {filename}（服务器错误 — 上传功能存在但保存失败，可能是权限/配置问题）")
+                        else:
+                            results.append(f"  [{status}] {test_name}: {filename}（上传响应 {status}，但未验证到文件路径）")
             elif status == 302:
                 results.append(f"  [{status}] {test_name}: {filename}（跳转，可能上传成功）")
             else:
-                results.append(f"  [{status}] {test_name}: {filename}")
+                err_msg = ""
+                if status == 500:
+                    err_msg = " — 服务器错误，上传功能存在但保存失败"
+                results.append(f"  [{status}] {test_name}: {filename}{err_msg}")
         except Exception as e:
             results.append(f"  [!] {test_name}: 异常 — {str(e)[:60]}")
 

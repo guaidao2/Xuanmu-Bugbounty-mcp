@@ -38,8 +38,17 @@ async def bb_secrets(
     sources_to_check = []
     try:
         resp = await client.get(url)
-        sources_to_check.append(("HTML", resp.text))
+        html = resp.text
+        sources_to_check.append(("HTML", html))
         content_type = resp.headers.get("Content-Type", "")
+
+        # 提取内联 JS 并加入分析
+        import re
+        inline_scripts = re.findall(r'<script[^>]*>(.*?)</script>', html, re.IGNORECASE | re.DOTALL)
+        for idx, js in enumerate(inline_scripts):
+            js = js.strip()
+            if len(js) > 30:  # 忽略空/极短的 script 块
+                sources_to_check.append((f"Inline JS #{idx+1}", js))
         results.append(f"[*] 状态: {resp.status_code} | Content-Type: {content_type}")
 
         # 提取 JS 文件
