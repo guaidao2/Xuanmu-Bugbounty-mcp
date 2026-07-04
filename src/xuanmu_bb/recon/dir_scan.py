@@ -43,6 +43,9 @@ async def bb_dir_scan(
     timeout: int = 10,
     proxy: Optional[str] = None,
     cookie: Optional[str] = None, auth_token: Optional[str] = None,
+    waf_mode: str = "safe",
+    max_retries_on_block: int = 3,
+    request_delay: float = 0.5,
 ) -> str:
     """
     目录/文件爆破

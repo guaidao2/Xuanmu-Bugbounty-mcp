@@ -93,9 +93,11 @@ async def tool_fingerprint(url: str, proxy: str = None, cookie: str = None, auth
 
 @mcp.tool(name="bb_dir_scan", description="目录/文件爆破 — 内置 150+ 敏感路径字典")
 async def tool_dir_scan(url: str, wordlist: str = None, status_filter: str = "200,301,302,307,308,401,403,405,500",
-                        concurrent: int = 30, timeout: int = 10, proxy: str = None, cookie: str = None, auth_token: str = None) -> str:
+                        concurrent: int = 30, timeout: int = 10, proxy: str = None, cookie: str = None, auth_token: str = None,
+                        waf_mode: str = "safe", max_retries_on_block: int = 3, request_delay: float = 0.5) -> str:
     return await bb_dir_scan(url, wordlist=wordlist, status_filter=status_filter,
-                             concurrent=concurrent, timeout=timeout, proxy=proxy, cookie=cookie, auth_token=auth_token)
+                             concurrent=concurrent, timeout=timeout, proxy=proxy, cookie=cookie, auth_token=auth_token,
+                             waf_mode=waf_mode, max_retries_on_block=max_retries_on_block, request_delay=request_delay)
 
 
 # ╔══════════════════════════════════════════════════════════════╗
