@@ -1,0 +1,25 @@
+[project]
+name = "xuanmu-bugbounty-mcp"
+version = "0.1.0"
+description = "Xuanmu Bug Bounty MCP — 独立自包含的 SRC 挖洞专用工具包"
+authors = [
+    {name = "xuanmu", email = "dev@xuanmu.bb"}
+]
+requires-python = ">=3.11"
+dependencies = [
+    "mcp>=1.0.0",
+    "httpx>=0.27.0",
+    "dnspython>=2.6.0",
+    "pyjwt>=2.8.0",
+]
+
+[project.scripts]
+xuanmu-bb = "xuanmu_bb.server:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
