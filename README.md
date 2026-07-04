@@ -100,21 +100,21 @@ bb_param_discover url="https://target.com"
 
 | 工具 | 功能 | 参数 |
 |------|------|------|
-| `bb_sqli` | SQL 注入 — 报错/布尔/时间盲注 | url, params, method, auth_token, cookie, waf_mode |
-| `bb_nosqli` | **NoSQL 注入** — MongoDB $ne/$gt/$regex | url, params, method, auth_token, cookie |
-| `bb_xss` | XSS 检测 — 反射型/多种上下文 | url, params, method, auth_token, cookie, waf_mode |
-| `bb_ssti` | SSTI 模板注入 — 多引擎检测 | url, params, auth_token, cookie, waf_mode |
-| `bb_cmdi` | 命令注入 — 时间盲注+输出回显 | url, params, auth_token, cookie, waf_mode |
-| `bb_ssrf` | SSRF 检测 — 内网/云元数据/OOB | url, params, auth_token, cookie, waf_mode |
+| `bb_sqli` | SQL 注入 — 报错/布尔/时间盲注 | url, params, method, body, auth_token, cookie, waf_mode |
+| `bb_nosqli` | **NoSQL 注入** — MongoDB $ne/$gt/$regex | url, params, method, body, auth_token, cookie |
+| `bb_xss` | XSS 检测 — 反射型/多种上下文 | url, params, method, body, auth_token, cookie, waf_mode |
+| `bb_ssti` | SSTI 模板注入 — 多引擎检测 | url, params, method, body, auth_token, cookie, waf_mode |
+| `bb_cmdi` | 命令注入 — 时间盲注+输出回显 | url, params, method, body, auth_token, cookie, waf_mode |
+| `bb_ssrf` | SSRF 检测 — 内网/云元数据/OOB | url, params, method, body, auth_token, cookie, waf_mode |
 | `bb_cors` | CORS 跨域 — 12 种 Origin 测试 | url, auth_token, cookie |
 | `bb_open_redirect` | 开放重定向 — 参数扫描+跳转测试 | url, params, auth_token, cookie |
 | `bb_file_upload` | 文件上传绕过 — 实际上传+验证可访问 | url, auth_token, cookie |
 | `bb_csrf` | CSRF 检测 — Token/SameSite/Referer | url, auth_token, cookie |
-| `bb_xxe` | XXE 检测 — 经典/Blind/SVG/XInclude | url, auth_token, cookie |
-| `bb_lfi` | 路径遍历 — ../遍历/PHP filter | url, params, auth_token, cookie, waf_mode |
+| `bb_xxe` | XXE 检测 — 经典/Blind/SVG/XInclude | url, body, auth_token, cookie |
+| `bb_lfi` | 路径遍历 — ../遍历/PHP filter | url, params, method, body, auth_token, cookie, waf_mode |
 | `bb_host_inject` | Host 头注入 — 9 种攻击场景 | url, auth_token, cookie |
 | `bb_takeover` | 子域名接管 — CNAME+50+云服务匹配 | domain, auth_token |
-| `bb_race` | 条件竞争 — 并发请求+响应差异分析 | url, method, data, concurrent, auth_token, cookie |
+| `bb_race` | 条件竞争 — 并发请求+响应差异分析 | url, method, data/body, concurrent, auth_token, cookie |
 
 ### 🔐 认证安全模块 (Authentication Security)
 
@@ -190,8 +190,18 @@ bb_extract      url="https://example.com" depth=2
 bb_secrets      url="https://example.com" check_js=true
 bb_headers      url="https://example.com"
 
+# POST body 注入（新增）
+bb_sqli         url="https://target.com/api/login" method="POST" body="username=admin&password=test" params="username"
+bb_xss          url="https://target.com/api/feedback" method="POST" body="message=test" params="message"
+bb_cmdi         url="https://target.com/api/ping" method="POST" body="host=127.0.0.1" params="host"
+bb_xxe          url="https://target.com/xml/parse" body="<?xml version='1.0'?><root>test</root>"
+bb_lfi          url="https://target.com/api/read" method="POST" body="file=../../../../etc/passwd" params="file"
+bb_ssti         url="https://target.com/welcome" method="POST" body="name={{7*7}}" params="name"
+
 # 工具
 bb_payload      vuln_type="xss" encode="all" count=20
+bb_send         url="https://example.com/api/login" method="POST" headers='{"Content-Type": "application/json"}' body='{"user":"admin","pass":"123"}'
+bb_report       vuln_type="sqli" target="https://example.com/page?id=1" payload="\' OR 1=1 -- "
 bb_send         url="https://example.com/api/login" method="POST" headers='{"Content-Type": "application/json"}' body='{"user":"admin","pass":"123"}'
 bb_report       vuln_type="sqli" target="https://example.com/page?id=1" payload="' OR 1=1 -- "
 
