@@ -61,7 +61,7 @@ python "绝对路径/src/xuanmu_bb/server.py"
 
 ---
 
-## 🧰 全部 29 个工具
+## 🧰 全部 30 个工具
 
 ### 🔍 侦察模块 (Reconnaissance)
 
@@ -115,6 +115,7 @@ python "绝对路径/src/xuanmu_bb/server.py"
 | 工具 | 功能 | 参数 |
 |------|------|------|
 | `bb_payload` | Payload 工厂 — 9 类漏洞×6 种编码 | vuln_type, encode, count |
+| `bb_send` | 手工 HTTP 发包 — 自定义方法/头/Body | url, method, headers, body, proxy, cookie |
 | `bb_report` | 漏洞报告生成 — SRC 格式 Markdown | vuln_type, target, param, payload, impact |
 
 ---
@@ -160,6 +161,7 @@ bb_headers      url="https://example.com"
 
 # 工具
 bb_payload      vuln_type="xss" encode="all" count=20
+bb_send         url="https://example.com/api/login" method="POST" headers='{"Content-Type": "application/json"}' body='{"user":"admin","pass":"123"}'
 bb_report       vuln_type="sqli" target="https://example.com/page?id=1" payload="' OR 1=1 -- "
 ```
 
@@ -169,7 +171,7 @@ bb_report       vuln_type="sqli" target="https://example.com/page?id=1" payload=
 
 ```
 src/xuanmu_bb/
-├── server.py              # MCP 入口（29 个工具注册）
+├── server.py              # MCP 入口（30 个工具注册）
 ├── client.py              # HTTP 客户端（代理/Cookie/UA轮换/反封策略）
 ├── utils.py               # 公共工具函数
 ├── data/                  # 内置数据（Payload 字典/指纹/WAF库/正则模式）
