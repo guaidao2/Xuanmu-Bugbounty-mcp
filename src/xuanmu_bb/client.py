@@ -29,6 +29,8 @@ class HttpClient:
         delay: float = 0,
         random_ua: bool = True,
         verify_ssl: bool = True,
+        auth_token: Optional[str] = None,
+        auth_header: Optional[str] = None,
     ):
         self.proxy = proxy
         self.cookie = cookie
@@ -37,6 +39,8 @@ class HttpClient:
         self.delay = delay
         self.random_ua = random_ua
         self.verify_ssl = verify_ssl
+        self.auth_token = auth_token
+        self.auth_header = auth_header or "Authorization"
         self._last_request_time = 0.0
 
     def _build_client(self) -> httpx.AsyncClient:
@@ -46,6 +50,8 @@ class HttpClient:
             headers["User-Agent"] = random.choice(USER_AGENTS)
         if self.cookie and "Cookie" not in headers:
             headers["Cookie"] = self.cookie
+        if self.auth_token and self.auth_header not in headers:
+            headers[self.auth_header] = f"Bearer {self.auth_token}"
 
         client_kwargs = dict(
             headers=headers,

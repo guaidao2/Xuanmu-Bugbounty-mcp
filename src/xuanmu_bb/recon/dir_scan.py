@@ -40,7 +40,7 @@ async def bb_dir_scan(
     concurrent: int = 30,
     timeout: int = 10,
     proxy: Optional[str] = None,
-    cookie: Optional[str] = None,
+    cookie: Optional[str] = None, auth_token: Optional[str] = None,
 ) -> str:
     """
     目录/文件爆破

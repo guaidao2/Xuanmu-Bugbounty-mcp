@@ -15,7 +15,7 @@ async def bb_send(
     content_type: Optional[str] = None,
     follow_redirects: bool = True,
     proxy: Optional[str] = None,
-    cookie: Optional[str] = None,
+    cookie: Optional[str] = None, auth_token: Optional[str] = None,
     timeout: int = 30,
 ) -> str:
     """
@@ -69,7 +69,7 @@ async def bb_send(
         result.append(f"Cookie: {cookie[:200]}")
 
     result.append("")
-    client = HttpClient(timeout=timeout, proxy=proxy, cookie=cookie)
+    client = HttpClient(timeout=timeout, proxy=proxy, cookie=cookie, auth_token=auth_token)
 
     try:
         resp = await client.request(

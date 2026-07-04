@@ -9,7 +9,7 @@ from ..utils import normalize_url
 async def bb_xxe(
     url: str,
     proxy: Optional[str] = None,
-    cookie: Optional[str] = None,
+    cookie: Optional[str] = None, auth_token: Optional[str] = None,
     timeout: int = 15,
     content_type: str = "application/xml",
 ) -> str:
@@ -36,7 +36,7 @@ async def bb_xxe(
     results.append(f"[*] XXE 检测目标: {url}")
     results.append("")
 
-    client = HttpClient(timeout=timeout, proxy=proxy, cookie=cookie)
+    client = HttpClient(timeout=timeout, proxy=proxy, cookie=cookie, auth_token=auth_token)
 
     # XXE Payload 列表
     xxe_payloads = [

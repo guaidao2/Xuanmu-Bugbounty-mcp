@@ -26,7 +26,7 @@ TEST_ORIGINS = [
 async def bb_cors(
     url: str,
     proxy: Optional[str] = None,
-    cookie: Optional[str] = None,
+    cookie: Optional[str] = None, auth_token: Optional[str] = None,
     timeout: int = 10,
 ) -> str:
     """
@@ -49,7 +49,7 @@ async def bb_cors(
     results.append(f"[*] CORS 检测目标: {url}")
     results.append("")
 
-    client = HttpClient(timeout=timeout, proxy=proxy, cookie=cookie)
+    client = HttpClient(timeout=timeout, proxy=proxy, cookie=cookie, auth_token=auth_token)
 
     # 1. 先发一个不带 Origin 的 OPTIONS 请求
     try:

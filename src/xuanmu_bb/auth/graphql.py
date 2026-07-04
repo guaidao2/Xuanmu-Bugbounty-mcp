@@ -57,7 +57,7 @@ query {
 async def bb_graphql(
     url: str,
     proxy: Optional[str] = None,
-    cookie: Optional[str] = None,
+    cookie: Optional[str] = None, auth_token: Optional[str] = None,
     timeout: int = 15,
 ) -> str:
     """
@@ -77,7 +77,7 @@ async def bb_graphql(
     results.append(f"[*] GraphQL 扫描目标: {url}")
     results.append("")
 
-    client = HttpClient(timeout=timeout, proxy=proxy, cookie=cookie)
+    client = HttpClient(timeout=timeout, proxy=proxy, cookie=cookie, auth_token=auth_token)
 
     # 1. 确认是 GraphQL 端点
     try:

@@ -12,7 +12,7 @@ async def bb_extract(
     url: str,
     depth: int = 1,
     proxy: Optional[str] = None,
-    cookie: Optional[str] = None,
+    cookie: Optional[str] = None, auth_token: Optional[str] = None,
     timeout: int = 15,
 ) -> str:
     """
@@ -36,7 +36,7 @@ async def bb_extract(
     results.append(f"[*] 提取深度: {depth}")
     results.append("")
 
-    client = HttpClient(timeout=timeout, proxy=proxy, cookie=cookie)
+    client = HttpClient(timeout=timeout, proxy=proxy, cookie=cookie, auth_token=auth_token)
 
     all_urls = set()
     js_file_urls = set()

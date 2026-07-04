@@ -13,7 +13,7 @@ async def bb_race(
     data: Optional[str] = None,
     concurrent: int = 20,
     proxy: Optional[str] = None,
-    cookie: Optional[str] = None,
+    cookie: Optional[str] = None, auth_token: Optional[str] = None,
     timeout: int = 15,
 ) -> str:
     """
@@ -45,7 +45,7 @@ async def bb_race(
     results.append(f"[*] 方法: {method}")
     results.append("")
 
-    client = HttpClient(timeout=timeout, proxy=proxy, cookie=cookie)
+    client = HttpClient(timeout=timeout, proxy=proxy, cookie=cookie, auth_token=auth_token)
 
     # 1. 先发一个正常请求做基线
     try:
@@ -56,11 +56,14 @@ async def bb_race(
         base_status = base_resp.status_code
         base_body_len = len(base_resp.content)
         results.append(f"[*] 基线: {base_status} ({base_body_len} bytes)")
+        _as = "required" if base_status in (401,403) else "none"
+        results.append(f"[AUTH: {_as}] HTTP {base_status}")
         results.append("")
     except Exception as e:
         base_status = 0
         base_body_len = 0
         results.append(f"[*] 基线请求失败: {e}")
+        results.append("[AUTH: unknown]")
         results.append("")
 
     # 2. 并发请求

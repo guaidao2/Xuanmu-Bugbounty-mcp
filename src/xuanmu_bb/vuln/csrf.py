@@ -10,7 +10,7 @@ from ..utils import normalize_url, extract_forms
 async def bb_csrf(
     url: str,
     proxy: Optional[str] = None,
-    cookie: Optional[str] = None,
+    cookie: Optional[str] = None, auth_token: Optional[str] = None,
     timeout: int = 15,
 ) -> str:
     """
@@ -36,7 +36,7 @@ async def bb_csrf(
     results.append(f"[*] CSRF 检测目标: {url}")
     results.append("")
 
-    client = HttpClient(timeout=timeout, proxy=proxy, cookie=cookie)
+    client = HttpClient(timeout=timeout, proxy=proxy, cookie=cookie, auth_token=auth_token)
 
     try:
         resp = await client.get(url)

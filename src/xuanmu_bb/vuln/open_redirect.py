@@ -12,7 +12,7 @@ async def bb_open_redirect(
     url: str,
     params: str = "",
     proxy: Optional[str] = None,
-    cookie: Optional[str] = None,
+    cookie: Optional[str] = None, auth_token: Optional[str] = None,
     timeout: int = 10,
 ) -> str:
     """

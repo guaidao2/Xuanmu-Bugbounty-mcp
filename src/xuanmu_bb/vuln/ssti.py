@@ -13,7 +13,7 @@ async def bb_ssti(
     url: str,
     params: str = "",
     proxy: Optional[str] = None,
-    cookie: Optional[str] = None,
+    cookie: Optional[str] = None, auth_token: Optional[str] = None,
     timeout: int = 15,
 ) -> str:
     """
@@ -34,7 +34,7 @@ async def bb_ssti(
     results.append(f"[*] SSTI 检测目标: {url}")
     results.append("")
 
-    client = HttpClient(timeout=timeout, proxy=proxy, cookie=cookie)
+    client = HttpClient(timeout=timeout, proxy=proxy, cookie=cookie, auth_token=auth_token)
 
     test_params = [p.strip() for p in params.split(",") if p.strip()]
     if not test_params:

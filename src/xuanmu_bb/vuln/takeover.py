@@ -68,7 +68,7 @@ TAKEOVER_SERVICES = {
 async def bb_takeover(
     domain: str,
     proxy: Optional[str] = None,
-    timeout: int = 10,
+    timeout: int = 10, auth_token: Optional[str] = None,
 ) -> str:
     """
     子域名接管检测 — DNS CNAME 分析 + HTTP 响应验证

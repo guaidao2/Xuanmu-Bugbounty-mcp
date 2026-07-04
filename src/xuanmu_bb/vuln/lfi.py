@@ -12,7 +12,7 @@ async def bb_lfi(
     url: str,
     params: str = "",
     proxy: Optional[str] = None,
-    cookie: Optional[str] = None,
+    cookie: Optional[str] = None, auth_token: Optional[str] = None,
     timeout: int = 15,
 ) -> str:
     """
@@ -34,7 +34,7 @@ async def bb_lfi(
     results.append(f"[*] Payload 数: {len(LFI_PAYLOADS)}")
     results.append("")
 
-    client = HttpClient(timeout=timeout, proxy=proxy, cookie=cookie)
+    client = HttpClient(timeout=timeout, proxy=proxy, cookie=cookie, auth_token=auth_token)
 
     test_params = [p.strip() for p in params.split(",") if p.strip()]
     if not test_params:
@@ -49,6 +49,8 @@ async def bb_lfi(
     try:
         base_resp = await client.get(url)
         base_len = len(base_resp.content)
+        _as = "required" if base_resp.status_code in (401,403) else "none"
+        results.append(f"[AUTH: {_as}] HTTP {base_resp.status_code}")
     except Exception:
         base_len = 0
 

@@ -14,7 +14,7 @@ async def bb_xss(
     params: str = "",
     method: str = "GET",
     proxy: Optional[str] = None,
-    cookie: Optional[str] = None,
+    cookie: Optional[str] = None, auth_token: Optional[str] = None,
     timeout: int = 15,
 ) -> str:
     """
@@ -37,7 +37,7 @@ async def bb_xss(
     results.append(f"[*] Payload 数: {len(XSS_PAYLOADS)}")
     results.append("")
 
-    client = HttpClient(timeout=timeout, proxy=proxy, cookie=cookie)
+    client = HttpClient(timeout=timeout, proxy=proxy, cookie=cookie, auth_token=auth_token)
 
     # 提取参数
     test_params = [p.strip() for p in params.split(",") if p.strip()]

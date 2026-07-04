@@ -14,7 +14,7 @@ async def bb_sqli(
     params: str = "",
     method: str = "GET",
     proxy: Optional[str] = None,
-    cookie: Optional[str] = None,
+    cookie: Optional[str] = None, auth_token: Optional[str] = None,
     timeout: int = 15,
     delay: float = 0.5,
 ) -> str:
@@ -53,6 +53,8 @@ async def bb_sqli(
         base_time = base_resp.elapsed.total_seconds() if hasattr(base_resp, 'elapsed') else 0
 
         results.append(f"[*] 基线: 状态={base_resp.status_code}, 大小={base_length}")
+        auth_status = "required" if base_resp.status_code in (401, 403) else "none"
+        results.append(f"[AUTH: {auth_status}] HTTP {base_resp.status_code}")
         results.append("")
     except Exception as e:
         results.append(f"[!] 基线请求失败: {e}")

@@ -9,7 +9,7 @@ from ..utils import normalize_url, parse_url
 async def bb_host_inject(
     url: str,
     proxy: Optional[str] = None,
-    cookie: Optional[str] = None,
+    cookie: Optional[str] = None, auth_token: Optional[str] = None,
     timeout: int = 15,
 ) -> str:
     """
@@ -39,7 +39,7 @@ async def bb_host_inject(
     results.append(f"[*] 原始 Host: {original_host}")
     results.append("")
 
-    client = HttpClient(timeout=timeout, proxy=proxy, cookie=cookie)
+    client = HttpClient(timeout=timeout, proxy=proxy, cookie=cookie, auth_token=auth_token)
 
     # 测试场景
     test_cases = [

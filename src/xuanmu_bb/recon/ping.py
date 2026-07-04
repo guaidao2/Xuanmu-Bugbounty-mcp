@@ -12,6 +12,7 @@ async def bb_ping(
     target: str,
     timeout: int = 5,
     proxy: Optional[str] = None,
+    auth_token: Optional[str] = None,
 ) -> str:
     """
     存活探测 — 检测目标是否存活（TCP + HTTP 双重检测）
@@ -50,7 +51,7 @@ async def bb_ping(
 
     # ---- HTTP Ping ----
     try:
-        client = HttpClient(timeout=timeout, proxy=proxy)
+        client = HttpClient(timeout=timeout, proxy=proxy, auth_token=auth_token)
         t1 = asyncio.get_event_loop().time()
         resp = await client.get(url)
         t2 = asyncio.get_event_loop().time()

@@ -12,7 +12,7 @@ async def bb_ssrf(
     url: str,
     params: str = "",
     proxy: Optional[str] = None,
-    cookie: Optional[str] = None,
+    cookie: Optional[str] = None, auth_token: Optional[str] = None,
     timeout: int = 10,
 ) -> str:
     """
@@ -34,7 +34,7 @@ async def bb_ssrf(
     results.append(f"[*] Payload 数: {len(SSRF_PAYLOADS)}")
     results.append("")
 
-    client = HttpClient(timeout=timeout, proxy=proxy, cookie=cookie)
+    client = HttpClient(timeout=timeout, proxy=proxy, cookie=cookie, auth_token=auth_token)
 
     test_params = [p.strip() for p in params.split(",") if p.strip()]
     if not test_params:
@@ -50,9 +50,12 @@ async def bb_ssrf(
         base_resp = await client.get(url)
         error_keywords = ["error", "exception", "timeout", "refused", "failed"]
         base_errors = sum(1 for kw in error_keywords if kw in base_resp.text.lower())
+        _as = "required" if base_resp.status_code in (401,403) else "none"
+        results.append(f"[AUTH: {_as}] HTTP {base_resp.status_code}")
     except Exception:
         base_errors = 0
         base_resp = None
+        results.append("[AUTH: unknown] 基线请求失败")
 
     findings = []
 
