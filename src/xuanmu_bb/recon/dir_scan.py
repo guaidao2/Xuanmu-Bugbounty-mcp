@@ -71,7 +71,7 @@ async def bb_dir_scan(
     results.append(f"[*] 关注状态码: {sorted(filter_codes)}")
     results.append("")
 
-    client = HttpClient(timeout=timeout, proxy=proxy, cookie=cookie, delay=0.05)
+    client = HttpClient(timeout=timeout, proxy=proxy, cookie=cookie, delay=0.05, auth_token=auth_token)
     sem = asyncio.Semaphore(concurrent)
 
     tasks = [_check_path(client, base_url, p, sem, timeout) for p in paths]

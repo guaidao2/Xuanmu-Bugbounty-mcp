@@ -40,7 +40,7 @@ async def bb_sqli(
     results.append(f"[*] Payload 数: {len(SQLI_PAYLOADS)}")
     results.append("")
 
-    client = HttpClient(timeout=timeout, proxy=proxy, cookie=cookie, delay=delay)
+    client = HttpClient(timeout=timeout, proxy=proxy, cookie=cookie, delay=delay, auth_token=auth_token)
 
     try:
         # 获取原始响应作为基线

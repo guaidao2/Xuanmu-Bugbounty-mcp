@@ -33,7 +33,7 @@ async def bb_open_redirect(
     results.append(f"[*] 开放重定向检测目标: {url}")
     results.append("")
 
-    client = HttpClient(timeout=timeout, proxy=proxy, cookie=cookie, verify_ssl=False)
+    client = HttpClient(timeout=timeout, proxy=proxy, cookie=cookie, verify_ssl=False, auth_token=auth_token)
 
     test_params = [p.strip() for p in params.split(",") if p.strip()]
     if not test_params:

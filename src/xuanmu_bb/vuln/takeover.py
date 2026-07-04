@@ -91,7 +91,7 @@ async def bb_takeover(
     results.append(f"[*] 子域名接管检测目标: {domain}")
     results.append("")
 
-    client = HttpClient(timeout=timeout, proxy=proxy)
+    client = HttpClient(timeout=timeout, proxy=proxy, auth_token=auth_token)
 
     # 1. DNS CNAME 查询
     cname = ""

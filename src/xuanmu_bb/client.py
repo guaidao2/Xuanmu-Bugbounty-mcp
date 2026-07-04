@@ -79,6 +79,7 @@ class HttpClient:
         params: Optional[dict] = None,
         data: Optional[dict] = None,
         json_data: Optional[dict] = None,
+        files: Optional[dict] = None,
         headers: Optional[dict] = None,
         follow_redirects: bool = True,
     ) -> httpx.Response:
@@ -91,6 +92,7 @@ class HttpClient:
                 params=params,
                 content=data,
                 json=json_data,
+                files=files,
                 headers=headers,
                 follow_redirects=follow_redirects,
             )

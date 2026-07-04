@@ -119,7 +119,7 @@ async def bb_file_upload(
     for filename, content, mime, test_name in test_cases:
         try:
             files_data = {upload_field: (filename, content, mime)}
-            resp = await client.post(upload_endpoint, data=files_data)
+            resp = await client.post(upload_endpoint, files=files_data)
             status = resp.status_code
             resp_body = resp.text[:500]
 

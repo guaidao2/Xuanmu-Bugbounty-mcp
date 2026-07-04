@@ -196,8 +196,8 @@ async def tool_jwt_crack(token: str, wordlist: str = "") -> str:
 
 
 @mcp.tool(name="bb_jwt_attack", description="JWT 攻击 — None 签名/KID 注入/算法混淆 (RS256→HS256)")
-async def tool_jwt_attack(token: str, mode: str = "none", payload_override: str = None, public_key: str = "") -> str:
-    return await bb_jwt_attack(token, mode=mode, payload_override=payload_override, public_key=public_key)
+async def tool_jwt_attack(token: str, mode: str = "none", payload_override: str = None, public_key: str = "", verify_url: str = None) -> str:
+    return await bb_jwt_attack(token, mode=mode, payload_override=payload_override, public_key=public_key, verify_url=verify_url)
 
 
 @mcp.tool(name="bb_graphql", description="GraphQL 安全扫描 — Introspection/批量查询/深度递归/Schema 提取")
