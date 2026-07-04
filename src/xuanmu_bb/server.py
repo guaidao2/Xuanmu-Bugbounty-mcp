@@ -108,9 +108,9 @@ async def tool_dir_scan(url: str, wordlist: str = None, status_filter: str = "20
 @mcp.tool(name="bb_nosqli", description="NoSQL 注入检测 — MongoDB \$ne/\$gt/\$regex 等 Payload")
 async def tool_nosqli(url: str, params: str = "", method: str = "GET",
                       proxy: str = None, cookie: str = None, auth_token: str = None,
-                      timeout: int = 15) -> str:
+                      timeout: int = 15, body: str = "") -> str:
     return await bb_nosqli(url, params=params, method=method,
-                           proxy=proxy, cookie=cookie, auth_token=auth_token, timeout=timeout)
+                           proxy=proxy, cookie=cookie, auth_token=auth_token, timeout=timeout, body=body)
 
 
 @mcp.tool(name="bb_sqli", description="SQL 注入检测 — 报错/布尔/时间盲注三种模式")
@@ -189,9 +189,9 @@ async def tool_takeover(domain: str, proxy: str = None, timeout: int = 10, auth_
 
 
 @mcp.tool(name="bb_race", description="条件竞争检测 — 并发请求分析 + 响应差异检测")
-async def tool_race(url: str, method: str = "POST", data: str = None, concurrent: int = 20,
+async def tool_race(url: str, method: str = "POST", data: str = None, body: str = None, concurrent: int = 20,
                     proxy: str = None, cookie: str = None, auth_token: str = None, timeout: int = 15) -> str:
-    return await bb_race(url, method=method, data=data, concurrent=concurrent,
+    return await bb_race(url, method=method, data=data, body=body, concurrent=concurrent,
                          proxy=proxy, cookie=cookie, timeout=timeout, auth_token=auth_token)
 
 

@@ -98,11 +98,16 @@ async def bb_nosqli(
                     # JSON body
                     try:
                         import json
-                        body = json.loads(payload)
+                        _json_body = json.loads(payload)
                     except json.JSONDecodeError:
-                        body = {param: payload}
-                    resp = await client.post(url, json_data=body,
-                                             headers={"Content-Type": "application/json"})
+                        _json_body = {param: payload}
+                    # NoSQL JSON payload 用 json_data, 用户传入的 body 用 data
+                    if body:
+                        resp = await client.post(url, data=body,
+                                                 headers={"Content-Type": "application/x-www-form-urlencoded"})
+                    else:
+                        resp = await client.post(url, json_data=_json_body,
+                                                 headers={"Content-Type": "application/json"})
 
                 indicators = []
                 body_text = resp.text.lower()

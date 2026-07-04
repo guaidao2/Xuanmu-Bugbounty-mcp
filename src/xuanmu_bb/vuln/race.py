@@ -11,6 +11,7 @@ async def bb_race(
     url: str,
     method: str = "POST",
     data: Optional[str] = None,
+    body: Optional[str] = None,
     concurrent: int = 20,
     proxy: Optional[str] = None,
     cookie: Optional[str] = None, auth_token: Optional[str] = None,
