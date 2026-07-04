@@ -38,11 +38,25 @@ async def bb_sqli(
     results = []
     _t_start = time.monotonic()
     results.append(f"[*] SQLi 检测目标: {url}")
-    results.append(f"[*] 方法: {method}")
     results.append(f"[*] Payload 数: {len(SQLI_PAYLOADS)}")
     results.append("")
 
     client = HttpClient(timeout=timeout, proxy=proxy, cookie=cookie, delay=delay, auth_token=auth_token)
+
+    # 自动检测表单 method：先获取页面，检查是否有 POST 表单
+    _auto_method = method.upper()
+    if _auto_method == "GET" and not params:
+        try:
+            _page_resp = await client.get(url, timeout=5)
+            import re
+            _form_m = re.search(r'<form[^>]*method=["\'](post)["\']', _page_resp.text, re.IGNORECASE)
+            if _form_m:
+                _auto_method = "POST"
+                results.append("[*] 页面检测到 POST 表单，自动切换为 POST 方法")
+        except Exception:
+            pass
+    method = _auto_method
+    results.append(f"[*] 方法: {method}")
 
     try:
         # 获取原始响应作为基线

@@ -1,5 +1,6 @@
 """开放重定向检测工具"""
 
+import asyncio
 from typing import Optional
 
 from ..client import HttpClient
@@ -23,7 +24,8 @@ async def bb_open_redirect(
         params: 参数字段名（逗号分隔），默认自动提取
         proxy: 代理地址（可选）
         cookie: Cookie（可选）
-        timeout: 超时秒数（默认 10）
+        auth_token: Bearer Token（可选）
+        timeout: 单请求超时秒数（默认 10）
 
     Returns:
         重定向检测结果
@@ -57,32 +59,35 @@ async def bb_open_redirect(
         results.append("[!] 未找到参数")
         return "\n".join(results)
 
-    findings = []
+    # 限制最大测试参数数，避免超时
+    if len(test_params) > 20:
+        results.append(f"[*] 参数较多 ({len(test_params)}), 限制为前 20 个")
+        test_params = test_params[:20]
 
-    for param in test_params:
-        for redirect_url in REDIRECT_PAYLOADS:
+    findings = []
+    sem = asyncio.Semaphore(10)  # 最多 10 并发
+
+    async def _check(param, redirect_url):
+        async with sem:
             try:
                 parsed = urlparse(url)
                 qs = parse_qs(parsed.query, keep_blank_values=True)
                 qs[param] = [redirect_url]
                 new_qs = urlencode(qs, doseq=True)
                 new_url = urlunparse(parsed._replace(query=new_qs))
-
-                # 不跟随重定向
                 resp = await client.get(new_url, follow_redirects=False)
-
                 if resp.status_code in (301, 302, 303, 307, 308):
                     location = resp.headers.get("Location", "")
                     if "evil.com" in location.lower():
-                        findings.append({
-                            "param": param,
-                            "redirect_url": redirect_url,
-                            "status": resp.status_code,
-                            "location": location[:200],
-                        })
-
+                        return {"param": param, "redirect_url": redirect_url,
+                                "status": resp.status_code, "location": location[:200]}
             except Exception:
                 pass
+        return None
+
+    tasks = [_check(p, r) for p in test_params for r in REDIRECT_PAYLOADS]
+    done = await asyncio.gather(*tasks)
+    findings = [f for f in done if f]
 
     if not findings:
         results.append("[-] 未检测到开放重定向")

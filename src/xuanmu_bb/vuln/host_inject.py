@@ -92,11 +92,17 @@ async def bb_host_inject(
                     "status": status,
                     "indicators": indicators,
                 })
+            else:
+                findings.append({
+                    "case": case["name"],
+                    "status": status,
+                    "indicators": [f"✅ HTTP {status}\uff08\u65e0\u53d8\u5316\uff09— \u8bf7\u6c42\u6210\u529f\uff0c\u672a\u88ab\u6ce8\u5165\u5f71\u54cd"],
+                })
         except Exception as e:
             findings.append({
                 "case": case["name"],
                 "status": 0,
-                "indicators": [f"请求失败: {str(e)[:60]}"],
+                "indicators": [f"❌ 请求异常: {str(e)[:80]} — 可能是连接被拒绝、DNS 解析失败或协议错误"],
             })
 
     if findings:

@@ -88,6 +88,12 @@ async def bb_file_upload(
         results.append(f"[*] 字段名: {upload_field}")
         results.append("")
 
+        # 预检：没有上传表单/文件输入/关键词时跳过实际上传
+        if not is_multipart and not input_m and not re.search(r'(upload|file|import|attachment)', body, re.IGNORECASE):
+            results.append("[INFO] 目标未发现文件上传功能，跳过实际上传测试")
+            results.append("[*] 如果确认存在上传接口，请直接指定上传端点 URL")
+            return "\n".join(results)
+
     except Exception as e:
         results.append(f"[!] 页面获取失败: {e}")
         results.append("")
