@@ -21,6 +21,7 @@ async def bb_xss(
     waf_mode: str = "safe",
     max_retries_on_block: int = 3,
     request_delay: float = 0.5,
+    body: str = "",
 ) -> str:
     """
     XSS 检测 — 反射型 XSS 检测
@@ -75,7 +76,7 @@ async def bb_xss(
             try:
                 # 构建带 payload 的请求
                 if method.upper() == "POST":
-                    resp = await client.post(url, data={param: payload})
+                    resp = await client.post(url, data=body or {param: payload})
                 else:
                     parsed = urlparse(url)
                     qs = parse_qs(parsed.query, keep_blank_values=True)

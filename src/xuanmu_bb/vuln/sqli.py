@@ -22,6 +22,7 @@ async def bb_sqli(
     waf_mode: str = "safe",
     max_retries_on_block: int = 3,
     request_delay: float = 0.5,
+    body: str = "",
 ) -> str:
     """
     SQL 注入检测 — 报错/布尔/时间盲注
@@ -112,7 +113,7 @@ async def bb_sqli(
             try:
                 # 构造带 payload 的请求
                 if method.upper() == "POST":
-                    resp = await client.post(url, data={param: test_value})
+                    resp = await client.post(url, data=body or {param: test_value})
                 else:
                     # 替换或追加 URL 参数
                     from urllib.parse import urlencode, urlparse, parse_qs, urlunparse

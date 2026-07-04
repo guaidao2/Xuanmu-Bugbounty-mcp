@@ -115,15 +115,17 @@ async def tool_nosqli(url: str, params: str = "", method: str = "GET",
 
 @mcp.tool(name="bb_sqli", description="SQL 注入检测 — 报错/布尔/时间盲注三种模式")
 async def tool_sqli(url: str, params: str = "", method: str = "GET",
-                    proxy: str = None, cookie: str = None, auth_token: str = None, timeout: int = 15, delay: float = 0.5) -> str:
+                    proxy: str = None, cookie: str = None, auth_token: str = None, timeout: int = 15, delay: float = 0.5,
+                    body: str = "") -> str:
     return await bb_sqli(url, params=params, method=method,
-                         proxy=proxy, cookie=cookie, timeout=timeout, delay=delay, auth_token=auth_token)
+                         proxy=proxy, cookie=cookie, timeout=timeout, delay=delay, auth_token=auth_token, body=body)
 
 
 @mcp.tool(name="bb_xss", description="XSS 检测 — 反射型 XSS，多种上下文/事件/属性 Payload")
 async def tool_xss(url: str, params: str = "", method: str = "GET",
-                   proxy: str = None, cookie: str = None, auth_token: str = None, timeout: int = 15) -> str:
-    return await bb_xss(url, params=params, method=method, proxy=proxy, cookie=cookie, timeout=timeout, auth_token=auth_token)
+                   proxy: str = None, cookie: str = None, auth_token: str = None, timeout: int = 15,
+                   body: str = "") -> str:
+    return await bb_xss(url, params=params, method=method, proxy=proxy, cookie=cookie, timeout=timeout, auth_token=auth_token, body=body)
 
 
 @mcp.tool(name="bb_ssti", description="SSTI 模板注入检测 — Jinja2/Twig/FreeMarker/Velocity/ERB/Smarty")
