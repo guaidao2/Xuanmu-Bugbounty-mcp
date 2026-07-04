@@ -48,6 +48,7 @@ from xuanmu_bb.extract.headers import bb_headers
 # ── Tools ──
 from xuanmu_bb.tools.payload_factory import bb_payload
 from xuanmu_bb.tools.report import bb_report
+from xuanmu_bb.tools.request import bb_send
 
 # ============================================================
 # MCP Server
@@ -237,6 +238,15 @@ async def tool_report(vuln_type: str = "", target: str = "", param: str = "",
                       payload: str = "", impact: str = "", detail: str = "", poc: str = "") -> str:
     return await bb_report(vuln_type=vuln_type, target=target, param=param,
                            payload=payload, impact=impact, detail=detail, poc=poc)
+
+
+@mcp.tool(name="bb_send", description="手工 HTTP 发包 — 自定义方法/头/Body 发送请求，支持完整请求响应查看")
+async def tool_send(url: str, method: str = "GET", headers: str = None, body: str = None,
+                    content_type: str = None, follow_redirects: bool = True,
+                    proxy: str = None, cookie: str = None, timeout: int = 30) -> str:
+    return await bb_send(url, method=method, headers=headers, body=body,
+                         content_type=content_type, follow_redirects=follow_redirects,
+                         proxy=proxy, cookie=cookie, timeout=timeout)
 
 
 # ╔══════════════════════════════════════════════════════════════╗
