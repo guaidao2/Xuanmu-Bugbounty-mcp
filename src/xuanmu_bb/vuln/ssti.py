@@ -88,13 +88,18 @@ async def bb_ssti(
                 body = resp.text
 
                 # 检测 7*7=49 计算
-                if "49" in body and "7*7" not in body:
+                payload_raw = entry["payload"]
+                is_reflection = payload_raw in body
+                import re
+                if re.search(r'\b49\b', body) and payload_raw not in body:
                     findings.append({
                         "param": param,
                         "payload": payload,
                         "engine": engine,
-                        "indicator": "数学计算执行: 7*7 → 49",
+                        "indicator": "数学计算执行: 7*7 → 49（确认模板执行）",
                     })
+                elif is_reflection and "49" in body:
+                    pass  # payload 被反射回显，非执行
 
                 # 检测 config 泄露（Jinja2）
                 elif "config" in body.lower() and "SECRET_KEY" in body:

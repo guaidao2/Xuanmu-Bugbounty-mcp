@@ -33,6 +33,10 @@ async def bb_nosqli(
     cookie: Optional[str] = None,
     auth_token: Optional[str] = None,
     timeout: int = 15,
+    body: str = "",
+    waf_mode: str = "safe",
+    max_retries_on_block: int = 3,
+    request_delay: float = 0.5,
 ) -> str:
     """
     NoSQL 注入检测 — MongoDB $ne/$gt/$regex 等 Payload

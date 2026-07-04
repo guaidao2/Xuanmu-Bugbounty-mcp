@@ -95,16 +95,45 @@ async def bb_dir_scan(
 
     found = [r for r in done if r["status"] in filter_codes]
 
+    # 302 去重：相同跳转模式聚合
+    redirect_groups = {}
+    non_redirect = []
+    for r in found:
+        if r["status"] in (301, 302, 303, 307, 308) and r.get("location"):
+            base_loc = r["location"].split("?")[0].rstrip("/")
+            # 提取跳转中的可变部分（/xxx/same.psp → /*/same.psp）
+            import re as re2
+            pattern = re2.sub(r'/[^/]+(?=/)', '/*', base_loc)
+            key = f"{r['status']} → {pattern}"
+            if key not in redirect_groups:
+                redirect_groups[key] = {"count": 0, "samples": [], "status": r['status']}
+            redirect_groups[key]["count"] += 1
+            if len(redirect_groups[key]["samples"]) < 3:
+                redirect_groups[key]["samples"].append(r['path'])
+        else:
+            non_redirect.append(r)
+
     if not found:
         results.append("[!] 未发现感兴趣的路径")
     else:
-        results.append(f"[✓] 发现 {len(found)} 个路径:")
+        total_unique = len(non_redirect) + len(redirect_groups)
+        results.append(f"[✓] 发现 {len(found)} 个路径（去重后 {total_unique} 组）:")
         results.append("")
-        results.append(f"    {'状态码':<8} {'大小':<10} {'路径':<50}")
-        results.append(f"    {'-'*70}")
-        for r in sorted(found, key=lambda x: x["status"]):
-            size_str = f"{r['size']:,}" if r["size"] else "-"
-            loc_str = f" → {r['location']}" if r["location"] else ""
-            results.append(f"    {r['status']:<8} {size_str:<10} /{r['path'].lstrip('/')}{loc_str}")
+        # 先显示非重定向
+        if non_redirect:
+            results.append(f"    {'状态码':<8} {'大小':<10} {'路径':<50}")
+            results.append(f"    {'-'*70}")
+            for r in sorted(non_redirect, key=lambda x: x["status"]):
+                size_str = f"{r['size']:,}" if r["size"] else "-"
+                loc_str = f" → {r['location']}" if r.get("location") else ""
+                results.append(f"    {r['status']:<8} {size_str:<10} /{r['path'].lstrip('/')}{loc_str}")
+        # 再显示聚合的重定向组
+        if redirect_groups:
+            results.append("")
+            results.append(f"    [重定向聚合] ({len(redirect_groups)} 组):")
+            for key, info in sorted(redirect_groups.items()):
+                samples = ", /".join([s.lstrip("/") for s in info["samples"]])
+                results.append(f"    {info['status']:<8} 共 {info['count']} 条 → {key.split('→')[1].strip()}")
+                results.append(f"           示例: /{samples}")
 
     return "\n".join(results)
