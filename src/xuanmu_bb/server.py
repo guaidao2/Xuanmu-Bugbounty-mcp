@@ -47,6 +47,7 @@ from xuanmu_bb.extract.url_extract import bb_extract
 from xuanmu_bb.extract.secret_detect import bb_secrets
 from xuanmu_bb.extract.headers import bb_headers
 from xuanmu_bb.extract.param_discover import bb_param_discover
+from xuanmu_bb.extract.js_analyze import bb_js_analyze
 
 # ── Tools ──
 from xuanmu_bb.tools.payload_factory import bb_payload
@@ -54,6 +55,9 @@ from xuanmu_bb.tools.report import bb_report
 from xuanmu_bb.tools.request import bb_send
 from xuanmu_bb.tools.oob import bb_oob
 from xuanmu_bb.tools.idor import bb_idor
+from xuanmu_bb.tools.session import bb_session
+from xuanmu_bb.tools.cloud_check import bb_cloud_check
+from xuanmu_bb.tools.waf_check import bb_waf_check
 
 # ============================================================
 # MCP Server
@@ -243,6 +247,13 @@ async def tool_param_discover(url: str, depth: int = 1, proxy: str = None, cooki
                                    auth_token=auth_token, timeout=timeout)
 
 
+@mcp.tool(name="bb_js_analyze", description="JS 深度分析 — 提取 API 路由/Sourcemap/硬编码密钥/SPA 路由/WebSocket 端点/云配置")
+async def tool_js_analyze(url: str, proxy: str = None, cookie: str = None,
+                          auth_token: str = None, timeout: int = 15) -> str:
+    return await bb_js_analyze(url, proxy=proxy, cookie=cookie,
+                               auth_token=auth_token, timeout=timeout)
+
+
 # ╔══════════════════════════════════════════════════════════════╗
 # ║  工具模块 (Utilities)                                         ║
 # ╚══════════════════════════════════════════════════════════════╝
@@ -283,6 +294,25 @@ async def tool_idor(url: str, token_owner: str = "", token_attacker: str = "",
                          method=method, param=param,
                          range_start=range_start, range_end=range_end,
                          proxy=proxy, timeout=timeout)
+
+
+@mcp.tool(name="bb_session", description="多步骤流程测试 — 自动保持 Cookie + 链式请求，用于测试业务流漏洞")
+async def tool_session(steps: str, proxy: str = None, timeout: int = 30) -> str:
+    return await bb_session(steps=steps, proxy=proxy, timeout=timeout)
+
+
+@mcp.tool(name="bb_cloud_check", description="云服务安全检测 — S3 公开访问 / 元数据 SSRF / 云配置泄露")
+async def tool_cloud_check(url: str, proxy: str = None, cookie: str = None,
+                           auth_token: str = None, timeout: int = 15) -> str:
+    return await bb_cloud_check(url, proxy=proxy, cookie=cookie,
+                                auth_token=auth_token, timeout=timeout)
+
+
+@mcp.tool(name="bb_waf_check", description="WAF 指纹识别 — 检测 Cloudflare/阿里云/腾讯云等 14 种 WAF + 绕过建议 + 推荐扫描设置")
+async def tool_waf_check(url: str, proxy: str = None, cookie: str = None,
+                         auth_token: str = None, timeout: int = 15) -> str:
+    return await bb_waf_check(url, proxy=proxy, cookie=cookie,
+                              auth_token=auth_token, timeout=timeout)
 
 
 # ╔══════════════════════════════════════════════════════════════╗
