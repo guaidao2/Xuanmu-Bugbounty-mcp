@@ -250,8 +250,11 @@ bb_waf_check url="https://target.com"
 bb_sqli url="https://target.com/page?id=1" waf_mode="safe" request_delay="3"
 ```
 
+## 🏗️ 项目结构
+
 ```
-server.py              # MCP 入口（38 个工具注册）
+src/xuanmu_bb/
+├── server.py              # MCP 入口（38 个工具注册）
 ├── client.py              # HTTP 客户端（代理/Cookie/UA轮换/反封策略）
 ├── utils.py               # 公共工具函数
 ├── data/                  # 内置数据（Payload 字典/指纹/WAF库/正则模式）
@@ -260,10 +263,11 @@ server.py              # MCP 入口（38 个工具注册）
 ├── auth/                  # 认证安全模块（5 工具）
 ├── extract/               # 信息提取模块（5 工具）
 └── tools/                 # 工具模块（8 工具）
+```
 
 ---
 
-## 🧪 技术特点## 🧪 技术特点
+## 🧪 技术特点
 
 - **完全自包含** — 不依赖 nmap/nuclei/burp 等外部工具，纯 Python 实现
 - **零外部扫描器依赖** — 不依赖 yakit/tscanplus/nuclei，独立运行
