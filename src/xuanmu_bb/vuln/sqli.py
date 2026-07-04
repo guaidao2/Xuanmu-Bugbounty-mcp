@@ -35,6 +35,7 @@ async def bb_sqli(
     """
     url = normalize_url(url)
     results = []
+    _t_start = time.monotonic()
     results.append(f"[*] SQLi 检测目标: {url}")
     results.append(f"[*] 方法: {method}")
     results.append(f"[*] Payload 数: {len(SQLI_PAYLOADS)}")

@@ -66,6 +66,7 @@ async def bb_dir_scan(
         paths = DIR_DICT
 
     results = []
+    _t_start = time.monotonic()
     results.append(f"[*] 目标: {base_url}")
     results.append(f"[*] 字典大小: {len(paths)}")
     results.append(f"[*] 关注状态码: {sorted(filter_codes)}")

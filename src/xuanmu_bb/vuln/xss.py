@@ -33,6 +33,7 @@ async def bb_xss(
     """
     url = normalize_url(url)
     results = []
+    _t_start = time.monotonic()
     results.append(f"[*] XSS 检测目标: {url}")
     results.append(f"[*] Payload 数: {len(XSS_PAYLOADS)}")
     results.append("")
