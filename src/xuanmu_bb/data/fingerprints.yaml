@@ -1,0 +1,215 @@
+# Xuanmu Bug Bounty 外置指纹库
+# 格式：每个指纹包含名称和多个检测信号
+# signals 中的每个信号有权重(w)，命中即加分
+# min_score: 判定为该技术的最低总分
+# version_extract: 提取版本号
+---
+- name: "Nginx"
+  min_score: 40
+  signals:
+    - {type: header, key: Server, pattern: "nginx", weight: 60}
+  negatives:
+    - {type: header, key: Server, pattern: "openresty", weight: 100}
+
+- name: "OpenResty"
+  min_score: 40
+  signals:
+    - {type: header, key: Server, pattern: "openresty", weight: 80}
+
+- name: "Apache"
+  min_score: 40
+  signals:
+    - {type: header, key: Server, pattern: "Apache(?!.*nginx)", weight: 60}
+
+- name: "IIS"
+  min_score: 40
+  signals:
+    - {type: header, key: Server, pattern: "IIS", weight: 60}
+  version_extract:
+    source: header
+    key: Server
+    pattern: "IIS/([\\d.]+)"
+
+- name: "PHP"
+  min_score: 30
+  signals:
+    - {type: header, key: X-Powered-By, pattern: "PHP", weight: 50}
+    - {type: header, key: Set-Cookie, pattern: "PHPSESSID", weight: 40}
+  version_extract:
+    source: header
+    key: X-Powered-By
+    pattern: "PHP/([\\d.]+)"
+
+- name: "ASP.NET"
+  min_score: 50
+  signals:
+    - {type: header, key: X-AspNet-Version, pattern: ".+", weight: 80}
+    - {type: header, key: X-Powered-By, pattern: "ASP\\.NET", weight: 30}
+  version_extract:
+    source: header
+    key: X-AspNet-Version
+    pattern: "([\\d.]+)"
+
+- name: "Java"
+  min_score: 30
+  signals:
+    - {type: header, key: Set-Cookie, pattern: "JSESSIONID", weight: 50}
+    - {type: header, key: X-Powered-By, pattern: "Servlet", weight: 30}
+
+- name: "Spring Boot"
+  min_score: 30
+  signals:
+    - {type: body, pattern: "Whitelabel Error Page", weight: 50}
+    - {type: body, pattern: "actuator", weight: 20}
+    - {type: body, pattern: "spring", weight: 15}
+
+- name: "Tomcat"
+  min_score: 30
+  signals:
+    - {type: body, pattern: "Apache Tomcat", weight: 50}
+    - {type: header, key: Server, pattern: "Tomcat", weight: 40}
+
+- name: "WordPress"
+  min_score: 40
+  signals:
+    - {type: body, pattern: "/wp-content/", weight: 40}
+    - {type: body, pattern: "/wp-includes/", weight: 30}
+    - {type: body, pattern: "wp-json", weight: 20}
+    - {type: body, pattern: "WordPress", weight: 15}
+  version_extract:
+    source: body
+    pattern: "WordPress\\s+([\\d.]+)"
+
+- name: "Drupal"
+  min_score: 30
+  signals:
+    - {type: body, pattern: "Drupal", weight: 30}
+    - {type: body, pattern: "Sites managed by Drupal", weight: 40}
+    - {type: body, pattern: "/sites/default/", weight: 20}
+
+- name: "Joomla"
+  min_score: 30
+  signals:
+    - {type: body, pattern: "/components/", weight: 20}
+    - {type: body, pattern: "Joomla", weight: 30}
+
+- name: "Django"
+  min_score: 30
+  signals:
+    - {type: body, pattern: "csrfmiddlewaretoken", weight: 50}
+    - {type: header, key: Set-Cookie, pattern: "csrftoken", weight: 40}
+
+- name: "Laravel"
+  min_score: 30
+  signals:
+    - {type: body, pattern: "Laravel", weight: 20}
+    - {type: header, key: Set-Cookie, pattern: "laravel_session", weight: 40}
+
+- name: "ThinkPHP"
+  min_score: 30
+  signals:
+    - {type: body, pattern: "ThinkPHP", weight: 40}
+
+- name: "Shiro"
+  min_score: 40
+  signals:
+    - {type: header, key: Set-Cookie, pattern: "rememberMe", weight: 60}
+
+- name: "Flask"
+  min_score: 20
+  signals:
+    - {type: body, pattern: "Flask", weight: 20}
+    - {type: header, key: Set-Cookie, pattern: "session", weight: 10}
+
+- name: "Express"
+  min_score: 30
+  signals:
+    - {type: header, key: X-Powered-By, pattern: "Express", weight: 50}
+
+- name: "FastAPI"
+  min_score: 20
+  signals:
+    - {type: body, pattern: "FastAPI", weight: 30}
+
+- name: "Discuz!"
+  min_score: 30
+  signals:
+    - {type: body, pattern: "Discuz!", weight: 40}
+    - {type: body, pattern: "comsenz", weight: 30}
+
+- name: "Dedecms"
+  min_score: 30
+  signals:
+    - {type: body, pattern: "DedeCMS|dedecms", weight: 30}
+    - {type: body, pattern: "Power by DedeCms", weight: 30}
+
+- name: "Swagger UI"
+  min_score: 30
+  signals:
+    - {type: body, pattern: "swagger-ui|Swagger UI", weight: 40}
+
+- name: "Kubernetes"
+  min_score: 30
+  signals:
+    - {type: body, pattern: "Kubernetes|k8s|kube-system", weight: 30}
+
+- name: "Kubernetes API"
+  min_score: 50
+  signals:
+    - {type: header, key: Server, pattern: "Kubernetes", weight: 80}
+
+- name: "Cloudflare"
+  min_score: 40
+  signals:
+    - {type: header, key: Server, pattern: "cloudflare", weight: 40}
+    - {type: header, key: CF-RAY, pattern: ".+", weight: 50}
+    - {type: body, pattern: "cloudflare", weight: 10}
+
+- name: "Vue.js"
+  min_score: 20
+  signals:
+    - {type: body, pattern: "vue\\.js|vuejs|Vue\\.js", weight: 30}
+    - {type: body, pattern: "vue-router|VueRouter", weight: 25}
+
+- name: "React"
+  min_score: 20
+  signals:
+    - {type: body, pattern: "react\\.js|React\\.js", weight: 30}
+    - {type: body, pattern: "react-dom", weight: 25}
+
+- name: "jQuery"
+  min_score: 20
+  signals:
+    - {type: body, pattern: "jquery", weight: 30}
+  version_extract:
+    source: body
+    pattern: "jquery[-.]([\\d.]+)"
+
+- name: "Bootstrap"
+  min_score: 20
+  signals:
+    - {type: body, pattern: "bootstrap\\.css|bootstrap\\.min\\.css", weight: 30}
+    - {type: body, pattern: "Bootstrap", weight: 15}
+  version_extract:
+    source: body
+    pattern: "bootstrap@?([\\d.]+)"
+
+- name: "Element UI"
+  min_score: 20
+  signals:
+    - {type: body, pattern: "element-ui|ElementUI", weight: 30}
+
+- name: "Ant Design"
+  min_score: 20
+  signals:
+    - {type: body, pattern: "antd|ant-design", weight: 30}
+
+- name: "Highcharts"
+  min_score: 20
+  signals:
+    - {type: body, pattern: "highcharts\\.js|Highcharts", weight: 30}
+
+- name: "ECharts"
+  min_score: 20
+  signals:
+    - {type: body, pattern: "echarts\\.js|echarts\\.min\\.js", weight: 30}

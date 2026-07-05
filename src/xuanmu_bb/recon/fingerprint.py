@@ -1,11 +1,108 @@
-"""Web 指纹识别工具"""
+"""Web 指纹识别工具 — 三源合一：内置评分引擎 + 外置YAML + Wappalyzer"""
 
+import os
 import re
 from typing import Optional
 
 from ..client import HttpClient
-from ..data import FINGERPRINTS, WAF_SIGNATURES
+from ..data import FINGERPRINTS as BUILTIN_FP, WAF_SIGNATURES
 from ..utils import normalize_url, extract_title
+
+
+def _load_yaml_fingerprints():
+    """加载外置 YAML 指纹库"""
+    yaml_path = os.path.join(os.path.dirname(__file__), "..", "data", "fingerprints.yaml")
+    yaml_path = os.path.normpath(yaml_path)
+    if not os.path.exists(yaml_path):
+        return []
+    try:
+        import yaml
+        with open(yaml_path, "r", encoding="utf-8") as f:
+            data = yaml.safe_load(f)
+        if isinstance(data, list):
+            return data
+    except Exception:
+        pass
+    return []
+
+
+def _score_engine(fp_list, headers, body):
+    """通用评分引擎 — 同时处理内置和 YAML 指纹"""
+    detected = []
+    for fp in fp_list:
+        score = 0
+        signals = fp.get("signals", [])
+        max_possible = sum(s.get("weight", s.get("w", 10)) for s in signals)
+        versions = []
+
+        for sig in signals:
+            matched = False
+            val = ""
+            sig_type = sig.get("type", "")
+            if sig_type == "header" or "hdr" in sig:
+                key = sig.get("key", sig.get("hdr", ""))
+                val = headers.get(key, "")
+                pat = sig.get("pattern", sig.get("pat", ""))
+                if pat and re.search(pat, val, re.IGNORECASE):
+                    matched = True
+            elif sig_type == "body" or "body" in sig:
+                val = body
+                pat = sig.get("pattern", sig.get("body", ""))
+                if pat and re.search(pat, body, re.IGNORECASE):
+                    matched = True
+
+            if matched:
+                score += sig.get("weight", sig.get("w", 10))
+                # 版本提取
+                ve = fp.get("version_extract", {})
+                if ve:
+                    ve_source = ve.get("source", "")
+                    ve_pat = ve.get("pattern", "")
+                    if ve_source == "header":
+                        hdr_val = headers.get(ve.get("key", ""), "")
+                        vm = re.search(ve_pat, hdr_val)
+                        if vm:
+                            versions.append(vm.group(1))
+                    elif ve_source == "body":
+                        vm = re.search(ve_pat, body)
+                        if vm:
+                            versions.append(vm.group(1))
+
+        # 反向排除
+        for neg in fp.get("negatives", []):
+            neg_type = neg.get("type", "header")
+            if neg_type == "header":
+                key = neg.get("key", neg.get("hdr", ""))
+                pat = neg.get("pattern", neg.get("pat", ""))
+                if pat and re.search(pat, headers.get(key, ""), re.IGNORECASE):
+                    score = 0
+                    break
+
+        min_score = fp.get("min_score", 30)
+        if score >= min_score:
+            ver_str = f" ({', '.join(versions)})" if versions else ""
+            pct = int(score / max_possible * 100) if max_possible > 0 else 0
+            conf = "高" if pct >= 80 else "中" if pct >= 50 else "低"
+            detected.append((f"{fp['name']}{ver_str}", conf, score, max_possible))
+
+    return detected
+
+
+async def _wappalyzer_scan(url):
+    """使用 Wappalyzer 库检测"""
+    try:
+        from Wappalyzer import Wappalyzer, WebPage
+        import asyncio
+        loop = asyncio.get_event_loop()
+        wapp = Wappalyzer.latest()
+        webpage = WebPage.new_from_url(url)
+        # Wappalyzer 的 analyze 是同步的，需要在线程中运行
+        result = await loop.run_in_executor(None, wapp.analyze, webpage)
+        if result:
+            return [(tech, "Wappalyzer", 0, 0) for tech in sorted(result)]
+    except Exception:
+        pass
+    return []
 
 
 async def bb_fingerprint(
@@ -15,12 +112,18 @@ async def bb_fingerprint(
     timeout: int = 15,
 ) -> str:
     """
-    Web 指纹识别 — 检测技术栈、CMS、WAF
+    Web 指纹识别 — 三源合一：内置评分引擎 + 外置YAML + Wappalyzer
+
+    检测流程:
+    1. 内置评分引擎 — 多信号加权判定（Server/Cookie/Body）
+    2. 外置 YAML 指纹库 — fingerprints.yaml 中的信号规则
+    3. Wappalyzer — 开源指纹识别库协同判定
 
     Args:
         url: 目标 URL
         proxy: 代理地址（可选）
         cookie: Cookie（可选）
+        auth_token: Bearer Token（可选）
         timeout: 超时秒数（默认 15）
 
     Returns:
@@ -51,53 +154,46 @@ async def bb_fingerprint(
             results.append(f"[*] X-Powered-By: {x_powered}")
         results.append("")
 
-        # ---- 多信号评分指纹识别 ----
-        detected = []
-        for fp in FINGERPRINTS:
-            score = 0
-            max_possible = sum(s.get("w", 10) for s in fp.get("signals", []))
-            versions = []
+        # ============================================================
+        # 三源合一指纹识别
+        # ============================================================
 
-            for sig in fp.get("signals", []):
-                matched = False
-                val = ""
-                if "hdr" in sig:
-                    val = headers.get(sig["hdr"], "")
-                    if re.search(sig["pat"], val, re.IGNORECASE):
-                        matched = True
-                elif "body" in sig:
-                    val = body
-                    if re.search(sig["body"], body, re.IGNORECASE):
-                        matched = True
-                if matched:
-                    score += sig.get("w", 10)
-                    # 提取版本
-                    ve = fp.get("version_extract", {})
-                    if ve.get("hdr", "") == sig.get("hdr", ""):
-                        vm = re.search(ve["pat"], val)
-                        if vm:
-                            versions.append(vm.group(1))
+        # 1. 内置评分引擎
+        builtin_results = _score_engine(BUILTIN_FP, headers, body)
 
-            # 反向排除
-            for neg in fp.get("negatives", []):
-                if "hdr" in neg:
-                    if re.search(neg["pat"], headers.get(neg["hdr"], ""), re.IGNORECASE):
-                        score = 0
-                        break
+        # 2. 外置 YAML 指纹库
+        yaml_fp = _load_yaml_fingerprints()
+        yaml_results = _score_engine(yaml_fp, headers, body)
 
-            if score >= fp.get("min_score", 30):
-                ver_str = f" ({', '.join(versions)})" if versions else ""
-                detected.append((fp["name"] + ver_str, score, max_possible))
+        # 3. Wappalyzer
+        wapp_results = await _wappalyzer_scan(url)
 
-        if detected:
-            detected.sort(key=lambda x: -x[1])
-            results.append(f"[✓] 识别到 {len(detected)} 项指纹:")
-            for name, score, max_s in detected:
-                pct = int(score / max_s * 100) if max_s > 0 else 0
-                conf = "高" if pct >= 80 else "中" if pct >= 50 else "低"
-                results.append(f"  └─ {name} (置信度: {conf} {score}/{max_s})")
+        # 合并去重
+        seen = set()
+        merged = []
+
+        for name, conf, score, max_s in builtin_results + yaml_results + wapp_results:
+            # 取基本名称（去掉版本号）
+            base_name = name.split(" (")[0]
+            if base_name not in seen:
+                seen.add(base_name)
+                merged.append((name, conf, score if score > 0 else max_s, max_s))
+
+        merged.sort(key=lambda x: -x[2] if x[2] > 0 else -x[3])
+
+        if merged:
+            results.append(f"[✓] 识别到 {len(merged)} 项技术栈:")
+            for name, conf, score, max_s in merged:
+                if conf in ("高", "中", "Wappalyzer"):
+                    tag = f"[{conf}]"
+                else:
+                    tag = "[中]"
+                if max_s > 0:
+                    results.append(f"  {tag} {name} ({conf} {score}/{max_s})")
+                else:
+                    results.append(f"  {tag} {name}")
         else:
-            results.append("[-] 未识别到已知指纹")
+            results.append("[-] 未识别到已知技术栈")
 
         # ---- WAF 检测 ----
         results.append("")
@@ -118,8 +214,6 @@ async def bb_fingerprint(
         if waf_detected:
             results.append(f"[!] WAF 检测: 发现 {', '.join(waf_detected)}")
             results.append("  └─ 后续测试建议注意绕过")
-
-            # WAF 绕过建议
             bypass_hints = {
                 "Cloudflare": "尝试直接访问源站 IP，或使用特殊 UA/Headers",
                 "阿里云 WAF": "尝试编码绕过、分块传输、HTTP 参数污染",
