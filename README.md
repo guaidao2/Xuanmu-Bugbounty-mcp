@@ -16,6 +16,9 @@ cd Xuanmu-BugBounty-mcp
 # 2. 安装依赖（使用清华源）
 pip install -e . -i https://pypi.tuna.tsinghua.edu.cn/simple
 
+# 或使用 requirements.txt
+pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+
 # 3. 启动 MCP 服务器（stdio 模式）
 # 方式一：直接启动（推荐）
 xuanmu-bb
