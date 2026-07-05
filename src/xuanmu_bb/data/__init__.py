@@ -89,37 +89,128 @@ DIR_DICT = [
 ]
 
 # ============================================================
-# ——— Web 指纹库 ———
+# ——— Web 指纹库（多信号评分）———
+# 每个指纹包含:
+#   signals: 多组匹配信号，每组有权重
+#   min_score: 判定为该技术的最低总分
+#   version_extract: 可选，提取版本号的正则
+#   negatives: 可选，反向排除信号
 # ============================================================
 FINGERPRINTS = [
-    # CMS / 框架
-    {"name": "WordPress",      "headers": {},              "body": r'/wp-content/|wp-includes|wp-json|wp-admin'},
-    {"name": "Drupal",          "headers": {},              "body": r'Drupal|drupal|Sites managed by Drupal'},
-    {"name": "Joomla",          "headers": {},              "body": r'/components/|/modules/|Joomla|joomla'},
-    {"name": "Discuz!",         "headers": {},              "body": r'Discuz!|discuz|comsenz'},
-    {"name": "Dedecms",         "headers": {},              "body": r'DedeCMS|dedecms|Power by DedeCms'},
-    {"name": "PHPWind",         "headers": {},              "body": r'PHPWind|phpwind'},
-    {"name": "ThinkPHP",        "headers": {},              "body": r'ThinkPHP|thinkphp'},
-    {"name": "Laravel",         "headers": {},              "body": r'Laravel|laravel'},
-    {"name": "Yii",             "headers": {},              "body": r'Yii|yiiframework'},
-    {"name": "Spring Boot",     "headers": {},              "body": r'Whitelabel Error Page|spring|actuator'},
-    {"name": "Django",          "headers": {},              "body": r'Django|django|csrfmiddlewaretoken'},
-    {"name": "Flask",           "headers": {},              "body": r'Flask|flask'},
-    {"name": "Express",         "headers": {},              "body": r'Express|express'},
-    {"name": "FastAPI",         "headers": {},              "body": r'FastAPI|fastapi'},
-    {"name": "ASP.NET",         "headers": {"X-AspNet-Version": r".*"}, "body": r''},
-    {"name": "ASP.NET (Core)",  "headers": {"X-Powered-By": r"ASP\.NET"}, "body": r'Microsoft\.AspNetCore'},
-    {"name": "OpenResty",       "headers": {"Server": r"openresty"},   "body": r''},
-    {"name": "Tomcat",          "headers": {},              "body": r'Apache Tomcat|Tomcat'},
-    {"name": "Nginx",           "headers": {"Server": r"nginx"},   "body": r''},
-    {"name": "Apache",          "headers": {"Server": r"Apache"},  "body": r''},
-    {"name": "IIS",             "headers": {"Server": r"IIS"},     "body": r''},
-    {"name": "Cloudflare",      "headers": {"Server": r"cloudflare", "CF-RAY": r".*"}, "body": r''},
-    {"name": "阿里云 WAF",       "headers": {},              "body": r'阿里云 Web 应用防火墙|errors.aliyun.com'},
-    {"name": "腾讯云 WAF",       "headers": {},              "body": r'腾讯云 Web 应用防火墙|tencent cloud waf'},
-    {"name": "Shiro",           "headers": {"Set-Cookie": r"rememberMe"}, "body": r''},
-    {"name": "Swagger UI",      "headers": {},              "body": r'swagger-ui|Swagger UI'},
-    {"name": "Kubernetes",      "headers": {},              "body": r'Kubernetes|k8s|kube-system'},
+    # ── 服务器 / 反向代理 ──
+    {"name": "Nginx", "min_score": 60, "signals": [
+        {"hdr": "Server", "pat": r"nginx", "w": 60},
+    ], "negatives": [{"hdr": "Server", "pat": r"openresty", "w": 100}]},
+    {"name": "OpenResty", "min_score": 60, "signals": [
+        {"hdr": "Server", "pat": r"openresty", "w": 80},
+    ]},
+    {"name": "Apache", "min_score": 60, "signals": [
+        {"hdr": "Server", "pat": r"Apache(?!.*nginx)", "w": 60},
+    ], "negatives": [{"hdr": "Server", "pat": r"openresty|cloudflare", "w": 100}]},
+    {"name": "IIS", "min_score": 60, "signals": [
+        {"hdr": "Server", "pat": r"IIS", "w": 60},
+    ]},
+    {"name": "Tomcat", "min_score": 30, "signals": [
+        {"body": r"Apache Tomcat", "w": 40},
+        {"body": r"Tomcat", "w": 20},
+    ]},
+
+    # ── 编程语言 / 框架 ──
+    {"name": "ASP.NET", "min_score": 60, "signals": [
+        {"hdr": "X-AspNet-Version", "pat": r".+", "w": 80},
+        {"hdr": "X-Powered-By", "pat": r"ASP\.NET", "w": 30},
+    ], "version_extract": {"hdr": "X-AspNet-Version", "pat": r"([\d.]+)"}},
+    {"name": "PHP", "min_score": 30, "signals": [
+        {"hdr": "X-Powered-By", "pat": r"PHP", "w": 50},
+        {"hdr": "Set-Cookie", "pat": r"PHPSESSID", "w": 40},
+    ], "version_extract": {"hdr": "X-Powered-By", "pat": r"PHP/([\d.]+)"}},
+    {"name": "Java", "min_score": 20, "signals": [
+        {"hdr": "Set-Cookie", "pat": r"JSESSIONID", "w": 40},
+        {"hdr": "X-Powered-By", "pat": r"Servlet", "w": 30},
+    ]},
+    {"name": "Python", "min_score": 20, "signals": [
+        {"hdr": "Server", "pat": r"Werkzeug|gunicorn|uwsgi", "w": 40},
+        {"hdr": "Set-Cookie", "pat": r"session", "w": 10},
+    ]},
+    {"name": "Node.js / Express", "min_score": 30, "signals": [
+        {"hdr": "X-Powered-By", "pat": r"Express", "w": 50},
+        {"body": r"Express", "w": 15},
+    ]},
+
+    # ── CMS ──
+    {"name": "WordPress", "min_score": 40, "signals": [
+        {"body": r'/wp-content/', "w": 40},
+        {"body": r'/wp-includes/', "w": 30},
+        {"body": r'wp-json', "w": 20},
+        {"body": r'wp-admin', "w": 15},
+        {"body": r'WordPress', "w": 15},
+    ], "version_extract": {"body": "(?i)WordPress\\s+([\\d.]+)", "pat": "([\\d.]+)"}},
+    {"name": "Drupal", "min_score": 30, "signals": [
+        {"body": r'Drupal|drupal', "w": 30},
+        {"body": r'Sites managed by Drupal', "w": 30},
+        {"body": r'/sites/default/', "w": 20},
+    ]},
+    {"name": "Joomla", "min_score": 30, "signals": [
+        {"body": r'/components/', "w": 20},
+        {"body": r'/modules/', "w": 15},
+        {"body": r'Joomla', "w": 20},
+    ]},
+    {"name": "Discuz!", "min_score": 30, "signals": [
+        {"body": r'Discuz!', "w": 30},
+        {"body": r'comsenz', "w": 30},
+    ]},
+    {"name": "Dedecms", "min_score": 30, "signals": [
+        {"body": r'DedeCMS|dedecms', "w": 30},
+        {"body": r'Power by DedeCms', "w": 30},
+    ]},
+
+    # ── 开发框架 ──
+    {"name": "ThinkPHP", "min_score": 30, "signals": [
+        {"body": r'ThinkPHP', "w": 30},
+        {"body": r'thinkphp', "w": 15},
+    ]},
+    {"name": "Laravel", "min_score": 30, "signals": [
+        {"body": r'Laravel', "w": 20},
+        {"body": r'laravel', "w": 15},
+        {"hdr": "Set-Cookie", "pat": r"laravel_session", "w": 30},
+    ]},
+    {"name": "Yii", "min_score": 20, "signals": [
+        {"body": r'Yii', "w": 20},
+        {"body": r'yiiframework', "w": 20},
+    ]},
+    {"name": "Spring Boot", "min_score": 30, "signals": [
+        {"body": r'Whitelabel Error Page', "w": 40},
+        {"body": r'actuator', "w": 20},
+        {"body": r'spring', "w": 15},
+        {"hdr": "Set-Cookie", "pat": r"JSESSIONID", "w": 15},
+    ]},
+    {"name": "Django", "min_score": 30, "signals": [
+        {"body": r'csrfmiddlewaretoken', "w": 40},
+        {"body": r'Django', "w": 25},
+        {"hdr": "Set-Cookie", "pat": r"csrftoken", "w": 30},
+    ]},
+    {"name": "Flask", "min_score": 20, "signals": [
+        {"body": r'Flask', "w": 15},
+        {"hdr": "Set-Cookie", "pat": r"session", "w": 10},
+    ]},
+    {"name": "FastAPI", "min_score": 20, "signals": [
+        {"body": r'FastAPI', "w": 20},
+    ]},
+    {"name": "Shiro", "min_score": 40, "signals": [
+        {"hdr": "Set-Cookie", "pat": r"rememberMe", "w": 50},
+    ]},
+
+    # ── API / 文档 ──
+    {"name": "Swagger UI", "min_score": 30, "signals": [
+        {"body": r'swagger-ui', "w": 30},
+        {"body": r'Swagger UI', "w": 30},
+    ]},
+    {"name": "Kubernetes", "min_score": 30, "signals": [
+        {"body": r'Kubernetes|k8s|kube-system', "w": 30},
+    ]},
+    {"name": "Kubernetes API", "min_score": 50, "signals": [
+        {"hdr": "Server", "pat": r"Kubernetes", "w": 80},
+    ]},
 ]
 
 # ============================================================

@@ -51,27 +51,51 @@ async def bb_fingerprint(
             results.append(f"[*] X-Powered-By: {x_powered}")
         results.append("")
 
-        # ---- 指纹匹配 ----
+        # ---- 多信号评分指纹识别 ----
         detected = []
         for fp in FINGERPRINTS:
-            matched = False
-            # 检查 header 匹配
-            for hdr, pattern in fp.get("headers", {}).items():
-                val = headers.get(hdr, "")
-                if re.search(pattern, val, re.IGNORECASE):
-                    matched = True
-                    break
-            # 检查 body 匹配
-            body_pattern = fp.get("body", "")
-            if body_pattern and re.search(body_pattern, body, re.IGNORECASE):
-                matched = True
-            if matched:
-                detected.append(fp["name"])
+            score = 0
+            max_possible = sum(s.get("w", 10) for s in fp.get("signals", []))
+            versions = []
+
+            for sig in fp.get("signals", []):
+                matched = False
+                val = ""
+                if "hdr" in sig:
+                    val = headers.get(sig["hdr"], "")
+                    if re.search(sig["pat"], val, re.IGNORECASE):
+                        matched = True
+                elif "body" in sig:
+                    val = body
+                    if re.search(sig["body"], body, re.IGNORECASE):
+                        matched = True
+                if matched:
+                    score += sig.get("w", 10)
+                    # 提取版本
+                    ve = fp.get("version_extract", {})
+                    if ve.get("hdr", "") == sig.get("hdr", ""):
+                        vm = re.search(ve["pat"], val)
+                        if vm:
+                            versions.append(vm.group(1))
+
+            # 反向排除
+            for neg in fp.get("negatives", []):
+                if "hdr" in neg:
+                    if re.search(neg["pat"], headers.get(neg["hdr"], ""), re.IGNORECASE):
+                        score = 0
+                        break
+
+            if score >= fp.get("min_score", 30):
+                ver_str = f" ({', '.join(versions)})" if versions else ""
+                detected.append((fp["name"] + ver_str, score, max_possible))
 
         if detected:
+            detected.sort(key=lambda x: -x[1])
             results.append(f"[✓] 识别到 {len(detected)} 项指纹:")
-            for name in detected:
-                results.append(f"  └─ {name}")
+            for name, score, max_s in detected:
+                pct = int(score / max_s * 100) if max_s > 0 else 0
+                conf = "高" if pct >= 80 else "中" if pct >= 50 else "低"
+                results.append(f"  └─ {name} (置信度: {conf} {score}/{max_s})")
         else:
             results.append("[-] 未识别到已知指纹")
 
