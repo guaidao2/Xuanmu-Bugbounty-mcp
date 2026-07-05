@@ -28,7 +28,7 @@ class HttpClient:
         timeout: int = 15,
         delay: float = 0,
         random_ua: bool = True,
-        verify_ssl: bool = True,
+        verify_ssl: bool = False,
         auth_token: Optional[str] = None,
         auth_header: Optional[str] = None,
     ):
