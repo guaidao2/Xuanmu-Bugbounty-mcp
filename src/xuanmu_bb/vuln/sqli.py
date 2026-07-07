@@ -2,13 +2,13 @@
 
 import asyncio
 import re
+import time
 from typing import Optional
 
-import time
 from ..client import HttpClient
 from ..data.waf import waf_precheck
 from ..data import SQLI_PAYLOADS
-from ..utils import normalize_url
+from ..utils import normalize_url, extract_params_from_url, build_url_with_param, run_waf_precheck
 
 
 async def bb_sqli(
@@ -41,36 +41,29 @@ async def bb_sqli(
     """
     url = normalize_url(url)
     results = []
-    _t_start = time.monotonic()
     results.append(f"[*] SQLi 检测目标: {url}")
     results.append(f"[*] Payload 数: {len(SQLI_PAYLOADS)}")
     results.append("")
 
     client = HttpClient(timeout=timeout, proxy=proxy, cookie=cookie, delay=delay, auth_token=auth_token)
-    # WAF 预检
-    if waf_mode != "off":
-        _w = await waf_precheck(url, waf_mode=waf_mode, request_delay=request_delay, proxy=proxy, cookie=cookie, auth_token=auth_token)
-        if _w["waf_detected"]:
-            _wn = _w.get("waf_name","")
-    _wd = _w.get("delay",0)
-    results.append(f"[!] WAF 检测: " + _wn + " 自动降速至 " + str(_wd) + "s")
-    for s in _w["suggestions"]:
-        results.append(f"    绕过: " + s)
 
+    # WAF 预检（使用公共函数）
+    waf_lines = await run_waf_precheck(url, waf_mode=waf_mode, request_delay=request_delay,
+                                       proxy=proxy, cookie=cookie, auth_token=auth_token)
+    results.extend(waf_lines)
 
-    # 自动检测表单 method：先获取页面，检查是否有 POST 表单
-    _auto_method = method.upper()
-    if _auto_method == "GET" and not params:
+    # 自动检测表单 method
+    auto_method = method.upper()
+    if auto_method == "GET" and not params:
         try:
-            _page_resp = await client.get(url, timeout=5)
-            import re
+            _page_resp = await client.get(url)
             _form_m = re.search(r'<form[^>]*method=["\'](post)["\']', _page_resp.text, re.IGNORECASE)
             if _form_m:
-                _auto_method = "POST"
+                auto_method = "POST"
                 results.append("[*] 页面检测到 POST 表单，自动切换为 POST 方法")
         except Exception:
             pass
-    method = _auto_method
+    method = auto_method
     results.append(f"[*] 方法: {method}")
 
     try:
@@ -92,15 +85,10 @@ async def bb_sqli(
         return "\n".join(results)
 
     # 如果指定了参数，逐个测试
-    test_params = [p.strip() for p in params.split(",") if p.strip()]
-    if not test_params:
-        # 从 URL 提取参数
-        from urllib.parse import urlparse, parse_qs
-        parsed = urlparse(url)
-        test_params = list(parse_qs(parsed.query).keys())
-        if not test_params and method.upper() == "GET":
-            results.append("[!] 未找到参数，请使用 ?key=value 格式的 URL 或通过 params 指定")
-            return "\n".join(results)
+    test_params = extract_params_from_url(url, params)
+    if not test_params and method.upper() == "GET":
+        results.append("[!] 未找到参数，请使用 ?key=value 格式的 URL 或通过 params 指定")
+        return "\n".join(results)
 
     findings = []
 
@@ -115,13 +103,7 @@ async def bb_sqli(
                 if method.upper() == "POST":
                     resp = await client.post(url, data=body or {param: test_value})
                 else:
-                    # 替换或追加 URL 参数
-                    from urllib.parse import urlencode, urlparse, parse_qs, urlunparse
-                    parsed = urlparse(url)
-                    qs = parse_qs(parsed.query, keep_blank_values=True)
-                    qs[param] = [test_value]
-                    new_qs = urlencode(qs, doseq=True)
-                    new_url = urlunparse(parsed._replace(query=new_qs))
+                    new_url = build_url_with_param(url, param, test_value)
                     resp = await client.get(new_url)
 
                 resp_length = len(resp.content)
@@ -147,7 +129,7 @@ async def bb_sqli(
                 elif ptype == "boolean":
                     if "1=2" in payload or "1'='2" in payload:
                         if abs(resp_length - base_length) > 50:
-                            indicators.append(f"响应大小变化 ({base_length}→{resp_length})")
+                            indicators.append(f"响应大小变化 ({base_length} -> {resp_length})")
 
                 # 时间盲注检测
                 elif ptype == "time_based" and "sleep" in payload.lower():

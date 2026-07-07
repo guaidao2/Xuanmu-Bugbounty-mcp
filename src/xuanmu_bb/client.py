@@ -1,7 +1,8 @@
-"""自定义 HTTP 客户端 — 支持代理/Cookie/反封/UA轮换"""
+"""自定义 HTTP 客户端 — 支持代理/Cookie/反封策略/UA轮换"""
 
 import asyncio
 import random
+from time import time
 from typing import Optional
 
 import httpx
@@ -115,7 +116,3 @@ class HttpClient:
 
     async def options(self, url: str, **kwargs) -> httpx.Response:
         return await self.request("OPTIONS", url, **kwargs)
-
-
-# 为了在 async 中使用 time()
-from time import time

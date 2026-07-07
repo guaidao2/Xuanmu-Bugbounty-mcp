@@ -135,19 +135,19 @@ async def bb_race(
         results.append("")
         results.append("[!] 条件竞争检测发现:")
         for flag in race_flags:
-            results.append(f"  ⚠️  {flag}")
+            results.append(f"  [!] {flag}")
         results.append("")
-        results.append("[🔥] 可能存在条件竞争漏洞，建议手动验证:")
+        results.append("[!] 可能存在条件竞争漏洞，建议手动验证:")
         results.append("  └─ 在 SRC 场景中，重点关注: 并发领取/扣款/抽奖/修改资源")
     else:
         results.append("")
-        results.append("[✓] 未发现明显的条件竞争异常")
+        results.append("[+] 未发现明显的条件竞争异常")
         results.append("  └─ 所有请求行为一致")
 
     results.append("")
     results.append("[*] Race Condition 手动验证技巧:")
-    results.append("  🔸 使用 Burp Suite Turbo Intruder 的 'race-single-packet-attack'")
-    results.append("  🔸 使用 Python asyncio + asyncio.gather() 发送真正的同时请求")
-    results.append("  🔸 关注: 库存操作 / 余额操作 / 抽奖 / 优惠券领取")
+    results.append("  - 使用 Burp Suite Turbo Intruder 的 'race-single-packet-attack'")
+    results.append("  - 使用 Python asyncio + asyncio.gather() 发送真正的同时请求")
+    results.append("  - 关注: 库存操作 / 余额操作 / 抽奖 / 优惠券领取")
 
     return "\n".join(results)

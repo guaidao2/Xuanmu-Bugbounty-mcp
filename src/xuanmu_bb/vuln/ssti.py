@@ -4,10 +4,8 @@ import re
 from typing import Optional
 
 from ..client import HttpClient
-from ..data.waf import waf_precheck
 from ..data import SSTI_PAYLOADS
-from ..utils import normalize_url
-from urllib.parse import urlencode, urlparse, parse_qs, urlunparse
+from ..utils import normalize_url, extract_params_from_url, build_url_with_param, run_waf_precheck
 
 
 async def bb_ssti(
@@ -41,21 +39,13 @@ async def bb_ssti(
     results.append("")
 
     client = HttpClient(timeout=timeout, proxy=proxy, cookie=cookie, auth_token=auth_token)
-    # WAF 预检
-    if waf_mode != "off":
-        _w = await waf_precheck(url, waf_mode=waf_mode, request_delay=request_delay, proxy=proxy, cookie=cookie, auth_token=auth_token)
-        if _w["waf_detected"]:
-            _wn = _w.get("waf_name","")
-    _wd = _w.get("delay",0)
-    results.append(f"[!] WAF 检测: " + _wn + " 自动降速至 " + str(_wd) + "s")
-    for s in _w["suggestions"]:
-        results.append(f"    绕过: " + s)
 
+    # WAF 预检（使用公共函数）
+    waf_lines = await run_waf_precheck(url, waf_mode=waf_mode, request_delay=request_delay,
+                                       proxy=proxy, cookie=cookie, auth_token=auth_token)
+    results.extend(waf_lines)
 
-    test_params = [p.strip() for p in params.split(",") if p.strip()]
-    if not test_params:
-        parsed = urlparse(url)
-        test_params = list(parse_qs(parsed.query).keys())
+    test_params = extract_params_from_url(url, params)
 
     if not test_params:
         results.append("[!] 未找到参数，请提供带参数的 URL")
@@ -76,33 +66,27 @@ async def bb_ssti(
             engine = entry["engine"]
 
             try:
-                parsed = urlparse(url)
-                qs = parse_qs(parsed.query, keep_blank_values=True)
-                qs[param] = [payload]
-                new_qs = urlencode(qs, doseq=True)
-                new_url = urlunparse(parsed._replace(query=new_qs))
+                new_url = build_url_with_param(url, param, payload)
                 if method.upper() == "POST":
                     resp = await client.post(url, data=body or {param: payload})
                 else:
                     resp = await client.get(new_url)
-                body = resp.text
+                resp_body = resp.text
 
                 # 检测 7*7=49 计算
                 payload_raw = entry["payload"]
-                is_reflection = payload_raw in body
-                import re
-                if re.search(r'\b49\b', body) and payload_raw not in body:
+                if re.search(r'\b49\b', resp_body) and payload_raw not in resp_body:
                     findings.append({
                         "param": param,
                         "payload": payload,
                         "engine": engine,
-                        "indicator": "数学计算执行: 7*7 → 49（确认模板执行）",
+                        "indicator": "数学计算执行: 7*7 -> 49（确认模板执行）",
                     })
-                elif is_reflection and "49" in body:
+                elif payload_raw in resp_body and "49" in resp_body:
                     pass  # payload 被反射回显，非执行
 
                 # 检测 config 泄露（Jinja2）
-                elif "config" in body.lower() and "SECRET_KEY" in body:
+                elif "config" in resp_body.lower() and "SECRET_KEY" in resp_body:
                     findings.append({
                         "param": param,
                         "payload": payload,

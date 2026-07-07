@@ -1,14 +1,12 @@
 """XSS 检测工具"""
 
 import re
+import time
 from typing import Optional
 
-import time
 from ..client import HttpClient
-from ..data.waf import waf_precheck
 from ..data import XSS_PAYLOADS
-from ..utils import normalize_url
-from urllib.parse import urlencode, urlparse, parse_qs, urlunparse
+from ..utils import normalize_url, extract_params_from_url, build_url_with_param, run_waf_precheck
 
 
 async def bb_xss(
@@ -39,28 +37,19 @@ async def bb_xss(
     """
     url = normalize_url(url)
     results = []
-    _t_start = time.monotonic()
     results.append(f"[*] XSS 检测目标: {url}")
     results.append(f"[*] Payload 数: {len(XSS_PAYLOADS)}")
     results.append("")
 
     client = HttpClient(timeout=timeout, proxy=proxy, cookie=cookie, auth_token=auth_token)
-    # WAF 预检
-    if waf_mode != "off":
-        _w = await waf_precheck(url, waf_mode=waf_mode, request_delay=request_delay, proxy=proxy, cookie=cookie, auth_token=auth_token)
-        if _w["waf_detected"]:
-            _wn = _w.get("waf_name","")
-    _wd = _w.get("delay",0)
-    results.append(f"[!] WAF 检测: " + _wn + " 自动降速至 " + str(_wd) + "s")
-    for s in _w["suggestions"]:
-        results.append(f"    绕过: " + s)
 
+    # WAF 预检（使用公共函数）
+    waf_lines = await run_waf_precheck(url, waf_mode=waf_mode, request_delay=request_delay,
+                                       proxy=proxy, cookie=cookie, auth_token=auth_token)
+    results.extend(waf_lines)
 
     # 提取参数
-    test_params = [p.strip() for p in params.split(",") if p.strip()]
-    if not test_params:
-        parsed = urlparse(url)
-        test_params = list(parse_qs(parsed.query).keys())
+    test_params = extract_params_from_url(url, params)
 
     if not test_params:
         results.append("[!] 未找到参数，请提供带参数的 URL 或通过 params 指定")
@@ -78,17 +67,13 @@ async def bb_xss(
                 if method.upper() == "POST":
                     resp = await client.post(url, data=body or {param: payload})
                 else:
-                    parsed = urlparse(url)
-                    qs = parse_qs(parsed.query, keep_blank_values=True)
-                    qs[param] = [payload]
-                    new_qs = urlencode(qs, doseq=True)
-                    new_url = urlunparse(parsed._replace(query=new_qs))
+                    new_url = build_url_with_param(url, param, payload)
                     resp = await client.get(new_url)
 
-                body = resp.text
+                resp_body = resp.text
 
                 # 检查 Payload 是否被反射
-                if payload in body:
+                if payload in resp_body:
                     # 检查是否被 HTML 实体编码
                     html_encoded = False
                     encoded_versions = [
@@ -97,17 +82,17 @@ async def bb_xss(
                         payload.replace("<", "&#x3C;").replace(">", "&#x3E;"),
                     ]
                     for ev in encoded_versions:
-                        if ev in body:
+                        if ev in resp_body:
                             html_encoded = True
                             break
 
                     # 检查上下文
                     context = "unknown"
-                    if f">{payload}<" in body or f"`{payload}`" in body:
+                    if f">{payload}<" in resp_body or f"`{payload}`" in resp_body:
                         context = "html (unquoted)"
-                    elif f'"{payload}"' in body:
+                    elif f'"{payload}"' in resp_body:
                         context = "attribute (double-quoted)"
-                    elif f"'{payload}'" in body:
+                    elif f"'{payload}'" in resp_body:
                         context = "attribute (single-quoted)"
 
                     findings.append({
@@ -119,7 +104,7 @@ async def bb_xss(
                         "status": resp.status_code,
                     })
 
-            except Exception as e:
+            except Exception:
                 pass
 
     if not findings:

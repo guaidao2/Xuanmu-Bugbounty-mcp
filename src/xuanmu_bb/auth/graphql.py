@@ -87,7 +87,7 @@ async def bb_graphql(
             headers={"Content-Type": "application/json"},
         )
         if probe.status_code == 200 and "__typename" in probe.text:
-            results.append("[✓] GraphQL 端点确认")
+            results.append("[+] GraphQL 端点确认")
         else:
             results.append("[*] 响应异常（但仍尝试后续检测）")
     except Exception as e:
@@ -147,12 +147,12 @@ async def bb_graphql(
                           if any(d in op.lower() for d in dangerous_ops)]
             if found_danger:
                 results.append("")
-                results.append("  [⚠️] 发现可疑危险操作:")
+                results.append("  [!] 发现可疑危险操作:")
                 for op in found_danger:
                     results.append(f"    → {op}")
 
             results.append("")
-            results.append("  [🔥] Introspection 已开启 — 攻击者可获取完整 Schema")
+            results.append("  [!] Introspection 已开启 — 攻击者可获取完整 Schema")
         else:
             results.append("  [-] Introspection 已关闭或受限")
     except Exception as e:
@@ -169,7 +169,7 @@ async def bb_graphql(
             headers={"Content-Type": "application/json"},
         )
         if resp.status_code == 200:
-            results.append("  [⚠️] 支持批量查询 — 可能存在 DoS 和速率滥用风险")
+            results.append("  [!] 支持批量查询 — 可能存在 DoS 和速率滥用风险")
         else:
             results.append(f"  [-] 批量查询被限制 (HTTP {resp.status_code})")
     except Exception:
@@ -185,19 +185,19 @@ async def bb_graphql(
             headers={"Content-Type": "application/json"},
             timeout=5,
         )
-        results.append(f"  [⚠️] 支持深度递归查询 — 可能存在 DoS 风险 (状态: {resp.status_code})")
+        results.append(f"  [!] 支持深度递归查询 — 可能存在 DoS 风险 (状态: {resp.status_code})")
     except Exception:
-        results.append("  [✗] 深度递归请求超时或失败")
-        results.append("  [✓] 深度递归可能被限制")
+        results.append("  [-] 深度递归请求超时或失败")
+        results.append("  [+] 深度递归可能被限制")
 
     # 安全建议
     results.append("")
     results.append("[*] GraphQL 安全建议:")
-    results.append("  ✅ 生产环境关闭 Introspection")
-    results.append("  ✅ 限制查询深度和复杂度")
-    results.append("  ✅ 禁用批量查询或限制数量")
-    results.append("  ✅ 认证 + 速率限制")
-    results.append("  ✅ 使用查询白名单 (Persisted Queries)")
-    results.append("  ✅ 禁用 __schema 查询")
+    results.append("  - 生产环境关闭 Introspection")
+    results.append("  - 限制查询深度和复杂度")
+    results.append("  - 禁用批量查询或限制数量")
+    results.append("  - 认证 + 速率限制")
+    results.append("  - 使用查询白名单 (Persisted Queries)")
+    results.append("  - 禁用 __schema 查询")
 
     return "\n".join(results)

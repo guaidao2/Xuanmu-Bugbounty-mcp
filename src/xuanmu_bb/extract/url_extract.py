@@ -108,7 +108,7 @@ async def bb_extract(
     results.append("")
 
     if endpoints:
-        results.append(f"[✓] API 端点 ({len(endpoints)}):")
+        results.append(f"[+] API 端点 ({len(endpoints)}):")
         for e in endpoints[:20]:
             results.append(f"  → {e}")
         if len(endpoints) > 20:

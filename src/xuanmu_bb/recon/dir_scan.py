@@ -117,7 +117,7 @@ async def bb_dir_scan(
         results.append("[!] 未发现感兴趣的路径")
     else:
         total_unique = len(non_redirect) + len(redirect_groups)
-        results.append(f"[✓] 发现 {len(found)} 个路径（去重后 {total_unique} 组）:")
+        results.append(f"[+] 发现 {len(found)} 个路径（去重后 {total_unique} 组）:")
         results.append("")
         # 先显示非重定向
         if non_redirect:

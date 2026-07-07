@@ -23,7 +23,7 @@ async def bb_summary(
     """
     result = []
     result.append("=" * 60)
-    result.append("📋 Xuanmu Bug Bounty 扫描报告")
+    result.append("[Report] Xuanmu Bug Bounty 扫描报告")
     if url:
         result.append(f"   目标: {url}")
     result.append("=" * 60)
@@ -74,13 +74,13 @@ async def bb_summary(
         line_lower = line.lower()
 
         # 严重程度统计
-        if "[🔥" in line or "[HIGH]" in line.upper() or "高危" in line:
+        if "[!" in line or "[HIGH]" in line.upper() or "高危" in line:
             stats["high"] += 1
             stats["findings_detail"].append(("HIGH", line.strip()))
-        elif "[⚠️" in line or "[MEDIUM]" in line.upper() or "中危" in line:
+        elif "[!" in line or "[MEDIUM]" in line.upper() or "中危" in line:
             stats["medium"] += 1
             stats["findings_detail"].append(("MEDIUM", line.strip()))
-        elif "[ℹ️" in line or "[LOW]" in line.upper() or "低危" in line:
+        elif "[i" in line or "[LOW]" in line.upper() or "低危" in line:
             stats["low"] += 1
             stats["findings_detail"].append(("LOW", line.strip()))
 

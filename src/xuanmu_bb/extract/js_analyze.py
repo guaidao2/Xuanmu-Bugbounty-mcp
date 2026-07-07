@@ -282,7 +282,7 @@ async def bb_js_analyze(
         results.append(f"[API 路由] ({len(findings['api_routes'])} 个):")
         if external:
             for r in external[:15]:
-                results.append(f"  🔗 {r}")
+                results.append(f"  - {r}")
         if internal:
             for r in internal[:20]:
                 results.append(f"  📁 {r}")
@@ -292,7 +292,7 @@ async def bb_js_analyze(
     if findings["sourcemaps"]:
         results.append(f"[Sourcemap 泄露] ({len(findings['sourcemaps'])}):")
         for sm in sorted(findings["sourcemaps"])[:10]:
-            results.append(f"  ⚠️ {sm}")
+            results.append(f"  [!] {sm}")
         results.append("  → 访问 .map 文件可获取完整源码!")
         results.append("")
 
@@ -314,21 +314,21 @@ async def bb_js_analyze(
     if findings["websockets"]:
         results.append(f"[WebSocket 端点] ({len(findings['websockets'])}):")
         for ws in findings["websockets"]:
-            results.append(f"  🔌 {ws}")
+            results.append(f"  - {ws}")
         results.append("")
 
     # ---- 云服务 ----
     if findings["cloud"]:
         results.append(f"[云服务配置] ({len(findings['cloud'])}):")
         for c in findings["cloud"][:10]:
-            results.append(f"  ☁️ [{c['type']}] {c['value']}")
+            results.append(f"  [cloud] [{c['type']}] {c['value']}")
         results.append("")
 
     # ---- 配置对象 ----
     if findings["config_objects"]:
         results.append(f"[配置对象] ({len(findings['config_objects'])}):")
         for obj in findings["config_objects"][:5]:
-            results.append(f"  ⚙️ {obj['name']} = {obj['content'][:150]}")
+            results.append(f"  [config] {obj['name']} = {obj['content'][:150]}")
         results.append("")
 
     # ---- 无结果时兜底 ----

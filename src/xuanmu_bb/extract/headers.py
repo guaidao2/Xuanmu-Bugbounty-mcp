@@ -78,18 +78,18 @@ async def bb_headers(
     results.append("")
 
     if grade in ("A", "B"):
-        results.append("[✓] 安全配置良好")
+        results.append("[+] 安全配置良好")
     elif grade == "C":
         results.append("[!] 安全配置中等，建议改进")
     else:
-        results.append("[🔥] 安全配置严重不足！")
+        results.append("[!] 安全配置严重不足！")
     results.append("")
 
     # 详细信息
     results.append("[*] 检测详情:")
     results.append("")
     for ok, name, desc in details:
-        icon = "✅" if ok else "❌"
+        icon = "[PASS]" if ok else "[FAIL]"
         results.append(f"  {icon} {name}")
         results.append(f"     {desc}")
 
@@ -105,22 +105,22 @@ async def bb_headers(
                     "X-Version", "X-Generator", "X-Debug", "X-Proxy-Cache"]
     for h in leak_headers:
         if h in headers:
-            results.append(f"  ⚠️ {h}: {headers[h]}")
+            results.append(f"  [!] {h}: {headers[h]}")
 
     if not any(h in headers for h in leak_headers):
-        results.append("  ✅ 未发现版本信息泄露")
+        results.append("  [+] 未发现版本信息泄露")
 
     results.append("")
     results.append("[*] 推荐修复:")
     if not headers.get("Strict-Transport-Security"):
-        results.append("  🔹 添加: Strict-Transport-Security: max-age=31536000; includeSubDomains")
+        results.append("  - 添加: Strict-Transport-Security: max-age=31536000; includeSubDomains")
     if not headers.get("Content-Security-Policy"):
-        results.append("  🔹 添加: Content-Security-Policy 限制资源来源")
+        results.append("  - 添加: Content-Security-Policy 限制资源来源")
     if not headers.get("X-Frame-Options"):
-        results.append("  🔹 添加: X-Frame-Options: DENY 或 SAMEORIGIN")
+        results.append("  - 添加: X-Frame-Options: DENY 或 SAMEORIGIN")
     if not headers.get("X-Content-Type-Options"):
-        results.append("  🔹 添加: X-Content-Type-Options: nosniff")
+        results.append("  - 添加: X-Content-Type-Options: nosniff")
     if not headers.get("Referrer-Policy"):
-        results.append("  🔹 添加: Referrer-Policy: strict-origin-when-cross-origin")
+        results.append("  - 添加: Referrer-Policy: strict-origin-when-cross-origin")
 
     return "\n".join(results)

@@ -1,4 +1,4 @@
-# 🎯 Xuanmu-BugBounty-mcp
+# Xuanmu-BugBounty-mcp
 
 > **玄幕安全团队 · guaidao2 开发**
 >
@@ -6,7 +6,7 @@
 
 ---
 
-## 📦 快速安装
+## 快速安装
 
 ```bash
 # 1. 克隆仓库
@@ -15,6 +15,9 @@ cd Xuanmu-BugBounty-mcp
 
 # 2. 安装依赖（使用清华源）
 pip install -e . -i https://pypi.tuna.tsinghua.edu.cn/simple
+
+# 或使用 requirements.txt
+pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
 
 # 或使用 requirements.txt
 pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
@@ -29,7 +32,7 @@ python "绝对路径/src/xuanmu_bb/server.py"
 
 ---
 
-## 🔌 MCP 配置
+## MCP 配置
 
 在支持 MCP 的客户端（如 Claude Desktop、Cursor、Windsurf 等）中配置：
 
@@ -59,12 +62,12 @@ python "绝对路径/src/xuanmu_bb/server.py"
 }
 ```
 
-> 💡 将 `你的项目绝对路径` 替换为你实际存放项目的完整路径
+> 将 `你的项目绝对路径` 替换为你实际存放项目的完整路径
 > Windows 示例：`"D:\\Projects\\Xuanmu-BugBounty-mcp\\src\\xuanmu_bb\\server.py"`
 
 ---
 
-## 🔐 认证方式（两种都支持）
+## 认证方式（两种都支持）
 
 目标需要登录？所有 HTTP 工具都支持两种认证：
 
@@ -87,9 +90,9 @@ bb_param_discover url="https://target.com"
 
 ---
 
-## 🧰 全部 39 个工具
+## 全部 39 个工具
 
-### 🔍 侦察模块 (Reconnaissance)
+### 侦察模块 (Reconnaissance)
 
 | 工具 | 功能 | 参数 |
 |------|------|------|
@@ -99,7 +102,7 @@ bb_param_discover url="https://target.com"
 | `bb_fingerprint` | Web 指纹识别 — 技术栈/CMS/WAF | url, proxy, cookie, auth_token |
 | `bb_dir_scan` | 目录爆破 — 内置 150+ 敏感路径 | url, wordlist, status_filter, concurrent, cookie, auth_token |
 
-### 🔥 漏洞检测模块 (Vulnerability Detection)
+### 漏洞检测模块 (Vulnerability Detection)
 
 | 工具 | 功能 | 参数 |
 |------|------|------|
@@ -119,7 +122,7 @@ bb_param_discover url="https://target.com"
 | `bb_takeover` | 子域名接管 — CNAME+50+云服务匹配 | domain, auth_token |
 | `bb_race` | 条件竞争 — 并发请求+响应差异分析 | url, method, data/body, concurrent, auth_token, cookie |
 
-### 🔐 认证安全模块 (Authentication Security)
+### 认证安全模块 (Authentication Security)
 
 | 工具 | 功能 | 参数 |
 |------|------|------|
@@ -129,7 +132,7 @@ bb_param_discover url="https://target.com"
 | `bb_jwt_attack` | JWT 攻击 — None/KID注入/算法混淆 | token, mode, payload_override, public_key |
 | `bb_graphql` | GraphQL 扫描 — Introspection/批量/递归 | url, auth_token, cookie |
 
-### 📋 信息提取模块 (Information Extraction)
+### 信息提取模块 (Information Extraction)
 
 | 工具 | 功能 | 参数 |
 |------|------|------|
@@ -139,7 +142,7 @@ bb_param_discover url="https://target.com"
 | `bb_param_discover` | **参数自动发现** — 提取表单/查询/JSON/JS | url, depth, auth_token, cookie |
 | `bb_js_analyze` | **JS 深度分析** — API路由/Sourcemap/硬编码/SPA/WebSocket | url, auth_token, cookie |
 
-### 🧰 工具模块 (Utilities)
+### 工具模块 (Utilities)
 
 | 工具 | 功能 | 参数 |
 |------|------|------|
@@ -154,7 +157,7 @@ bb_param_discover url="https://target.com"
 
 ---
 
-## 🚀 使用示例
+## 使用示例
 
 ```bash
 # 侦察一个目标
@@ -235,7 +238,7 @@ bb_nosqli       url="https://example.com/api/user?id=1"
 
 ---
 
-## 🛡️ WAF 防护引擎
+## WAF 防护引擎
 
 支持 WAF 检测的扫描工具（sqli/xss/ssti/cmdi/ssrf/lfi/dir_scan）自动集成：
 
@@ -263,14 +266,19 @@ bb_waf_check url="https://target.com"
 bb_sqli url="https://target.com/page?id=1" waf_mode="safe" request_delay="3"
 ```
 
-## 🏗️ 项目结构
+## 项目结构
 
 ```
 src/xuanmu_bb/
-├── server.py              # MCP 入口（38 个工具注册）
+├── server.py              # MCP 入口（39 个工具注册，注册表模式）
 ├── client.py              # HTTP 客户端（代理/Cookie/UA轮换/反封策略）
 ├── utils.py               # 公共工具函数
-├── data/                  # 内置数据（Payload 字典/指纹/WAF库/正则模式）
+├── data/                  # 内置数据（已拆分）
+│   ├── payloads.py        #   SQLi/XSS/SSTI/CMDI/SSRF/LFI Payload
+│   ├── dicts.py           #   子域/目录字典 + 端口映射 + 弱口令
+│   ├── fingerprints.py    #   Web 指纹库 + WAF 签名
+│   ├── patterns.py        #   敏感信息正则 + 安全头列表
+│   └── waf.py             #   WAF 检测引擎
 ├── recon/                 # 侦察模块（5 工具）
 ├── vuln/                  # 漏洞检测模块（15 工具）
 ├── auth/                  # 认证安全模块（5 工具）
@@ -280,7 +288,7 @@ src/xuanmu_bb/
 
 ---
 
-## 🧪 技术特点
+## 技术特点
 
 - **完全自包含** — 不依赖 nmap/nuclei/burp 等外部工具，纯 Python 实现
 - **零外部扫描器依赖** — 不依赖 yakit/tscanplus/nuclei，独立运行
@@ -291,7 +299,7 @@ src/xuanmu_bb/
 
 ---
 
-## 📝 许可证
+## 许可证
 
 本项目仅供合法的安全测试与漏洞挖掘使用。使用者需遵守相关法律法规。
 

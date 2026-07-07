@@ -2,9 +2,11 @@
 
 import re
 import socket
-from typing import Optional
-from urllib.parse import urlparse, urljoin
+from typing import Optional, List
+from urllib.parse import urlparse, urljoin, urlencode, parse_qs, urlunparse
 
+
+# ── URL 工具 ──
 
 def normalize_url(url: str) -> str:
     """规范化 URL，自动补全协议"""
@@ -27,6 +29,67 @@ def parse_url(url: str) -> dict:
     }
 
 
+def extract_params_from_url(url: str, params_str: str = "") -> List[str]:
+    """从 URL 或参数字符串中提取参数列表。
+    优先使用 params_str（逗号分隔），否则从 URL query 中自动提取。
+    """
+    test_params = [p.strip() for p in params_str.split(",") if p.strip()]
+    if not test_params:
+        parsed = urlparse(url)
+        test_params = list(parse_qs(parsed.query).keys())
+    return test_params
+
+
+def build_url_with_param(url: str, param: str, value: str) -> str:
+    """将参数设置到 URL 的 query string 中并返回新 URL。"""
+    parsed = urlparse(url)
+    qs = parse_qs(parsed.query, keep_blank_values=True)
+    qs[param] = [value]
+    new_qs = urlencode(qs, doseq=True)
+    return urlunparse(parsed._replace(query=new_qs))
+
+
+# ── 参数构建 ──
+
+def build_param_list(params_str: str) -> List[str]:
+    """解析参数字符串 'a,b,c' 为列表"""
+    if not params_str:
+        return []
+    return [p.strip() for p in params_str.split(",") if p.strip()]
+
+
+# ── WAF 预检（消除各扫描工具的重复代码） ──
+
+async def run_waf_precheck(
+    url: str,
+    waf_mode: str = "safe",
+    request_delay: float = 0.5,
+    proxy: Optional[str] = None,
+    cookie: Optional[str] = None,
+    auth_token: Optional[str] = None,
+) -> List[str]:
+    """执行 WAF 预检并以列表形式返回格式化输出行。
+    如果 waf_mode == "off"，返回空列表。
+    """
+    from xuanmu_bb.data.waf import waf_precheck
+
+    if waf_mode == "off":
+        return []
+
+    lines = []
+    w = await waf_precheck(url, waf_mode=waf_mode, request_delay=request_delay,
+                           proxy=proxy, cookie=cookie, auth_token=auth_token)
+    waf_name = w.get("waf_name", "")
+    waf_delay = w.get("delay", 0)
+    if w["waf_detected"]:
+        lines.append(f"[!] WAF 检测: {waf_name}  自动降速至 {waf_delay}s")
+    for s in w.get("suggestions", []):
+        lines.append(f"    绕过: {s}")
+    return lines
+
+
+# ── 域名 / IP 校验 ──
+
 def is_valid_domain(domain: str) -> bool:
     """检查域名格式"""
     pattern = r"^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$"
@@ -48,6 +111,8 @@ def is_valid_host(target: str) -> bool:
     return is_valid_domain(target) or is_valid_ip(target)
 
 
+# ── 端口解析 ──
+
 def parse_ports(port_str: str) -> list[int]:
     """解析端口字符串，支持 80,443,8000-8010 格式"""
     ports = []
@@ -66,6 +131,8 @@ def parse_ports(port_str: str) -> list[int]:
                 continue
     return sorted(set(ports))
 
+
+# ── HTML 提取 ──
 
 def extract_title(html: str) -> str:
     """从 HTML 中提取标题"""
@@ -124,13 +191,6 @@ def extract_links(html: str, base_url: str = "") -> list[str]:
         if href and not href.startswith(("javascript:", "#", "mailto:")):
             links.append(urljoin(base_url, href) if base_url else href)
     return links
-
-
-def build_param_list(params_str: str) -> list[str]:
-    """解析参数字符串 'a,b,c' 为列表"""
-    if not params_str:
-        return []
-    return [p.strip() for p in params_str.split(",") if p.strip()]
 
 
 def truncate(text: str, max_len: int = 500) -> str:

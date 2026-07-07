@@ -149,7 +149,7 @@ async def bb_idor(
         results.append(f"[!] 发现 {len(findings)} 个越权风险:")
         results.append("")
         for f in findings:
-            sev = {"HIGH": "🔥", "MEDIUM": "⚠️", "LOW": "ℹ️"}.get(f["severity"], "?")
+            sev = {"HIGH": "[HIGH]", "MEDIUM": "[MEDIUM]", "LOW": "[LOW]"}.get(f["severity"], "?")
             results.append(f"  {sev} [{f['severity']}] {f['type']}")
             results.append(f"      {f['detail']}")
             if f.get("poc"):
@@ -199,7 +199,7 @@ def _compare_responses(resp_o, resp_a, auth_type, attacker_cred, findings, resul
             results.append(f"  [*] Attacker 内容与 Owner 不同（相似度 {similarity:.0%}），可能已鉴权")
 
     elif status_o == 200 and status_a in (401, 403):
-        results.append(f"  [✓] 鉴权正常: Attacker 被拒绝 (HTTP {status_a})")
+        results.append(f"  [+] 鉴权正常: Attacker 被拒绝 (HTTP {status_a})")
 
     elif status_o != status_a:
         results.append(f"  [*] Owner={status_o}, Attacker={status_a}")

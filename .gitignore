@@ -23,3 +23,12 @@ Thumbs.db
 
 # Reasonix 工作区元数据
 .reasonix/
+
+# Test artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Lint / typecheck cache
+.mypy_cache/
+.ruff_cache/

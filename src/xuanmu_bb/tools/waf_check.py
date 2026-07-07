@@ -49,7 +49,7 @@ async def bb_waf_check(
         result.append("  request_delay=3    → 请求间隔 3 秒")
         result.append("  max_retries=3      → 拦截后重试 3 次")
     else:
-        result.append("[✓] 未检测到已知 WAF")
+        result.append("[+] 未检测到已知 WAF")
         result.append("")
         result.append("[推荐扫描设置]:")
         result.append("  waf_mode=off       → 不启用 WAF 防护")

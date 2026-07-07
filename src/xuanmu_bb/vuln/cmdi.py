@@ -4,10 +4,8 @@ import asyncio
 from typing import Optional
 
 from ..client import HttpClient
-from ..data.waf import waf_precheck
 from ..data import CMDI_PAYLOADS
-from ..utils import normalize_url
-from urllib.parse import urlencode, urlparse, parse_qs, urlunparse
+from ..utils import normalize_url, extract_params_from_url, build_url_with_param, run_waf_precheck
 
 
 async def bb_cmdi(
@@ -42,21 +40,13 @@ async def bb_cmdi(
     results.append("")
 
     client = HttpClient(timeout=timeout + 5, proxy=proxy, cookie=cookie, auth_token=auth_token)
-    # WAF 预检
-    if waf_mode != "off":
-        _w = await waf_precheck(url, waf_mode=waf_mode, request_delay=request_delay, proxy=proxy, cookie=cookie, auth_token=auth_token)
-        if _w["waf_detected"]:
-            _wn = _w.get("waf_name","")
-    _wd = _w.get("delay",0)
-    results.append(f"[!] WAF 检测: " + _wn + " 自动降速至 " + str(_wd) + "s")
-    for s in _w["suggestions"]:
-        results.append(f"    绕过: " + s)
 
+    # WAF 预检（使用公共函数）
+    waf_lines = await run_waf_precheck(url, waf_mode=waf_mode, request_delay=request_delay,
+                                       proxy=proxy, cookie=cookie, auth_token=auth_token)
+    results.extend(waf_lines)
 
-    test_params = [p.strip() for p in params.split(",") if p.strip()]
-    if not test_params:
-        parsed = urlparse(url)
-        test_params = list(parse_qs(parsed.query).keys())
+    test_params = extract_params_from_url(url, params)
 
     if not test_params:
         results.append("[!] 未找到参数")
@@ -79,11 +69,7 @@ async def bb_cmdi(
             ptype = entry["type"]
 
             try:
-                parsed = urlparse(url)
-                qs = parse_qs(parsed.query, keep_blank_values=True)
-                qs[param] = [payload]
-                new_qs = urlencode(qs, doseq=True)
-                new_url = urlunparse(parsed._replace(query=new_qs))
+                new_url = build_url_with_param(url, param, payload)
 
                 t1 = asyncio.get_event_loop().time()
                 if method.upper() == "POST":
@@ -92,19 +78,18 @@ async def bb_cmdi(
                     resp = await client.get(new_url)
                 t2 = asyncio.get_event_loop().time()
                 resp_time = t2 - t1
-                body = resp.text
+                resp_body = resp.text
 
                 indicators = []
 
                 # 时间盲注 — ping 类 Payload 延迟 > 2s
                 if ptype == "time_based" and resp_time > base_time + 2:
-                    indicators.append(f"响应延迟 ({base_time:.1f}s → {resp_time:.1f}s)")
+                    indicators.append(f"响应延迟 ({base_time:.1f}s -> {resp_time:.1f}s)")
 
                 # 输出回显
                 if ptype == "output":
-                    # 检查是否是反射（payload 原文出现在响应中）
-                    is_reflection = payload.strip(";|&`$() ") in body
-                    if "xuanmu_test_" in body or "uid=" in body or "root:" in body:
+                    is_reflection = payload.strip(";|&`$() ") in resp_body
+                    if "xuanmu_test_" in resp_body or "uid=" in resp_body or "root:" in resp_body:
                         if is_reflection:
                             indicators.append("参数反射回显 (LOW — 仅为参数回显，非命令执行)")
                         else:

@@ -71,7 +71,7 @@ async def bb_subdomain(
     if not alive:
         results.append("[!] 未发现可解析的子域名")
     else:
-        results.append(f"[✓] 发现 {len(alive)} 个存活的子域名:")
+        results.append(f"[+] 发现 {len(alive)} 个存活的子域名:")
         results.append("")
         for r in sorted(alive, key=lambda x: x["subdomain"]):
             ips = r.get("ips", [])

@@ -102,7 +102,7 @@ async def bb_secrets(
                     })
 
     if not all_findings:
-        results.append("[✓] 未检测到敏感信息泄露")
+        results.append("[+] 未检测到敏感信息泄露")
     else:
         results.append(f"[!] 发现 {len(all_findings)} 处敏感信息:")
         results.append("")
@@ -115,16 +115,16 @@ async def bb_secrets(
         for secret_type, items in sorted(by_type.items()):
             results.append(f"  [{secret_type}] ({len(items)} 处)")
             for item in items[:5]:
-                results.append(f"    → {item['match']} [{item['source']}]")
+                results.append(f"    -> {item['match']} [{item['source']}]")
             if len(items) > 5:
                 results.append(f"    ... 还有 {len(items)-5} 处")
             results.append("")
 
     # 安全建议
     results.append("[*] 安全建议:")
-    results.append("  ✅ 不要在页面/JS 中硬编码凭据")
-    results.append("  ✅ 使用环境变量或标准密钥管理服务")
-    results.append("  ✅ 删除生产环境的调试注释")
-    results.append("  ✅ 对 JS 文件启用 SourceMap 控制")
+    results.append("  [+] 不要在页面/JS 中硬编码凭据")
+    results.append("  [+] 使用环境变量或标准密钥管理服务")
+    results.append("  [+] 删除生产环境的调试注释")
+    results.append("  [+] 对 JS 文件启用 SourceMap 控制")
 
     return "\n".join(results)

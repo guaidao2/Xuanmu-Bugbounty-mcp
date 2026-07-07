@@ -48,7 +48,7 @@ async def bb_file_upload(
         if form_m:
             action = form_m.group(1)
             is_multipart = True
-            results.append("[✓] 发现 multipart/form-data 上传表单")
+            results.append("[+] 发现 multipart/form-data 上传表单")
             if action and not action.startswith(("#", "javascript:")):
                 upload_endpoint = urljoin(url, action)
 

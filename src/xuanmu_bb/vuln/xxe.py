@@ -147,16 +147,16 @@ async def bb_xxe(
         for f in findings:
             results.append(f"  [{f['status']}] {f['name']}")
             for ind in f["indicators"]:
-                results.append(f"    → {ind}")
+                results.append(f"    -> {ind}")
             results.append("")
     else:
         results.append("[-] 未检测到 XXE 漏洞")
 
     results.append("")
     results.append("[*] 手动验证建议:")
-    results.append("  🔗 使用 OOB (Out-of-Band) 方式验证盲 XXE:")
+    results.append("  - 使用 OOB (Out-of-Band) 方式验证盲 XXE:")
     results.append("    将 evil.com 替换为你的 Burp Collaborator / interactsh 域名")
-    results.append("  📁 尝试不同协议: file://, http://, ftp://, php://, expect://")
-    results.append("  🔄 尝试 Error-based XXE: 将实体注入到报错信息中")
+    results.append("  [file] 尝试不同协议: file://, http://, ftp://, php://, expect://")
+    results.append("  [retry] 尝试 Error-based XXE: 将实体注入到报错信息中")
 
     return "\n".join(results)

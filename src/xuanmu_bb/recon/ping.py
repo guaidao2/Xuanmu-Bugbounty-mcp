@@ -45,9 +45,9 @@ async def bb_ping(
         t2 = asyncio.get_event_loop().time()
         writer.close()
         await writer.wait_closed()
-        results.append(f"[✓] TCP Ping: {host}:{port} 可达 ({int((t2-t1)*1000)}ms)")
+        results.append(f"[+] TCP Ping: {host}:{port} 可达 ({int((t2-t1)*1000)}ms)")
     except (OSError, asyncio.TimeoutError):
-        results.append(f"[✗] TCP Ping: {host}:{port} 不可达或超时")
+        results.append(f"[-] TCP Ping: {host}:{port} 不可达或超时")
 
     # ---- HTTP Ping ----
     try:
@@ -64,10 +64,10 @@ async def bb_ping(
         if m:
             title = m.group(1).strip()[:100]
 
-        results.append(f"[✓] HTTP Ping: {resp.status_code} ({resp_time}ms) {title}")
+        results.append(f"[+] HTTP Ping: {resp.status_code} ({resp_time}ms) {title}")
         results.append(f"    服务器: {resp.headers.get('Server', 'N/A')}")
         results.append(f"    Content-Type: {resp.headers.get('Content-Type', 'N/A')}")
     except Exception as e:
-        results.append(f"[✗] HTTP Ping: 失败 — {e}")
+        results.append(f"[-] HTTP Ping: 失败 — {e}")
 
     return "\n".join(results)

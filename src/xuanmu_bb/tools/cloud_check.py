@@ -66,12 +66,12 @@ async def bb_cloud_check(
             body = resp.text
             if resp.status_code == 200:
                 if "<ListBucketResult" in body or "<Contents>" in body:
-                    results.append(f"  [🔥 公开可读] https://{bucket_url}")
+                    results.append(f"  [! 公开可读] https://{bucket_url}")
                     results.append(f"      S3 Bucket 内容可公开列表!")
                 elif resp.status_code == 200:
-                    results.append(f"  [⚠️ 可访问] https://{bucket_url} (HTTP 200)")
+                    results.append(f"  [! 可访问] https://{bucket_url} (HTTP 200)")
             elif resp.status_code == 403:
-                results.append(f"  [🔒 禁止访问] https://{bucket_url} (403)")
+                results.append(f"  [locked 禁止访问] https://{bucket_url} (403)")
         except Exception:
             pass
 
@@ -90,7 +90,7 @@ async def bb_cloud_check(
     ]
     results.append("  在 SSRF 漏洞中尝试以下端点读取云凭据:")
     for cloud_name, endpoint in metadata_endpoints:
-        results.append(f"  → [{cloud_name}] {endpoint}")
+        results.append(f"  -> [{cloud_name}] {endpoint}")
     results.append("")
 
     # 3. 前端页面云配置泄露检测
@@ -121,7 +121,7 @@ async def bb_cloud_check(
         if cloud_leaks:
             results.append(f"  [!] 发现 {len(cloud_leaks)} 个云配置泄露:")
             for name, val in cloud_leaks[:8]:
-                results.append(f"    ⚠️ [{name}] {val}")
+                results.append(f"    [!] [{name}] {val}")
         else:
             results.append("  [-] 页面中未发现云配置泄露")
     except Exception as e:
@@ -129,9 +129,9 @@ async def bb_cloud_check(
 
     results.append("")
     results.append("[*] 安全建议:")
-    results.append("  ✅ S3 Bucket 应配置阻止公开访问")
-    results.append("  ✅ 云元数据服务需启用 IMDSv2 并限制访问")
-    results.append("  ✅ 前端代码中不应硬编码云服务凭据")
-    results.append("  ✅ 使用环境变量或 Secrets Manager 管理密钥")
+    results.append("  [+] S3 Bucket 应配置阻止公开访问")
+    results.append("  [+] 云元数据服务需启用 IMDSv2 并限制访问")
+    results.append("  [+] 前端代码中不应硬编码云服务凭据")
+    results.append("  [+] 使用环境变量或 Secrets Manager 管理密钥")
 
     return "\n".join(results)

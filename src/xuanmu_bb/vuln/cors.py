@@ -22,6 +22,8 @@ TEST_ORIGINS = [
     "https://evil.com#@{target}",
 ]
 
+SEVERITY_ICON = {"HIGH": "[HIGH]", "MEDIUM": "[MEDIUM]", "LOW": "[LOW]"}
+
 
 async def bb_cors(
     url: str,
@@ -64,7 +66,7 @@ async def bb_cors(
         }
         has_cors = any(v for v in cors_headers.values() if v)
         if has_cors:
-            results.append("[✓] 服务器返回了 CORS 头:")
+            results.append("[+] 服务器返回了 CORS 头:")
             for k, v in cors_headers.items():
                 if v:
                     results.append(f"  {k}: {v}")
@@ -77,12 +79,6 @@ async def bb_cors(
     results.append("")
 
     findings = []
-    # 先发一个不带 Origin 的基准请求
-    try:
-        base_resp = await client.get(url)
-        base_allow_origin = base_resp.headers.get("Access-Control-Allow-Origin", "")
-    except Exception:
-        base_allow_origin = ""
 
     for origin_tpl in TEST_ORIGINS:
         origin = origin_tpl.replace("{target}", target_host)
@@ -116,8 +112,8 @@ async def bb_cors(
         results.append(f"[!] 发现 {len(findings)} 个 CORS 配置问题:")
         results.append("")
         for f in findings:
-            severity_tag = {"HIGH": "🔥", "MEDIUM": "⚠️", "LOW": "ℹ️"}.get(f["severity"], "?")
-            results.append(f"  {severity_tag} [{f['severity']}] Origin: {f['origin']}")
+            tag = SEVERITY_ICON.get(f["severity"], "?")
+            results.append(f"  {tag} Origin: {f['origin']}")
             results.append(f"      Allow-Origin: {f['allow_origin']}")
             results.append(f"      Credentials: {f['credentials'] or '(无)'}")
             results.append(f"      {f['note']}")
@@ -128,9 +124,9 @@ async def bb_cors(
 
     # 3. 总结
     results.append("[*] 安全建议:")
-    results.append("  ✅ 避免使用 Access-Control-Allow-Origin: *")
-    results.append("  ✅ 避免反射 Origin 头")
-    results.append("  ✅ 敏感接口应限制特定 Origin")
-    results.append("  ✅ Access-Control-Allow-Credentials: true 需要搭配特定 Origin")
+    results.append("  - 避免使用 Access-Control-Allow-Origin: *")
+    results.append("  - 避免反射 Origin 头")
+    results.append("  - 敏感接口应限制特定 Origin")
+    results.append("  - Access-Control-Allow-Credentials: true 需要搭配特定 Origin")
 
     return "\n".join(results)

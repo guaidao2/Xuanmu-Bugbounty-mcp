@@ -110,16 +110,16 @@ async def bb_takeover(
             answers = await resolver.resolve(domain, "A")
             ips = [str(r) for r in answers]
             results.append(f"[*] A 记录 IP: {', '.join(ips)}")
-            results.append("[✓] A 记录存在 — 无接管风险")
+            results.append("[+] A 记录存在 — 无接管风险")
             return "\n".join(results)
         except Exception:
             results.append("[!] 域名无任何 DNS 记录 — 存在接管风险！")
             results.append("")
-            results.append("[🔥] DNS 记录完全不存在，可直接注册")
+            results.append("[!] DNS 记录完全不存在，可直接注册")
             return "\n".join(results)
 
     if not cname:
-        results.append("[✓] 无 CNAME — 无接管风险")
+        results.append("[+] 无 CNAME — 无接管风险")
         return "\n".join(results)
 
     # 2. CNAME 匹配已知服务
@@ -127,7 +127,7 @@ async def bb_takeover(
     for pattern, service_name in TAKEOVER_SERVICES.items():
         if pattern in cname:
             matched_service = service_name
-            results.append(f"[⚠️] CNAME 指向已知云服务: {service_name}")
+            results.append(f"[!] CNAME 指向已知云服务: {service_name}")
             break
 
     if not matched_service:
@@ -168,17 +168,17 @@ async def bb_takeover(
                 if indicator.lower() in body_preview.lower():
                     results.append(f"  [{status}] {scheme}://{domain}")
                     results.append(f"    → 发现接管特征: '{indicator}'")
-                    results.append(f"    🔥 {matched_service} 子域名可接管！")
+                    results.append(f"    [!] {matched_service} 子域名可接管！")
                     break
             else:
                 results.append(f"  [{status}] {scheme}://{domain} — 未匹配到接管特征")
         except Exception as e:
-            results.append(f"  [✗] {scheme}://{domain} — 请求失败: {str(e)[:60]}")
+            results.append(f"  [-] {scheme}://{domain} — 请求失败: {str(e)[:60]}")
 
     # 验证建议
     results.append("")
     if any("可接管" in r for r in results):
-        results.append("[🔥] 结论: 该子域名被弃用且可被接管！")
+        results.append("[!] 结论: 该子域名被弃用且可被接管！")
         results.append(f"    → 在 {matched_service} 上注册同名资源即可完成接管")
     else:
         results.append("[*] 结论: HTTP 验证未发现接管特征，但建议参考以下手动验证:")

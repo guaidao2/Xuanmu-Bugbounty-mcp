@@ -96,13 +96,13 @@ async def bb_host_inject(
                 findings.append({
                     "case": case["name"],
                     "status": status,
-                    "indicators": [f"✅ HTTP {status}\uff08\u65e0\u53d8\u5316\uff09— \u8bf7\u6c42\u6210\u529f\uff0c\u672a\u88ab\u6ce8\u5165\u5f71\u54cd"],
+                    "indicators": [f"[+] HTTP {status}（无变化）— 请求成功，未被注入影响"],
                 })
         except Exception as e:
             findings.append({
                 "case": case["name"],
                 "status": 0,
-                "indicators": [f"❌ 请求异常: {str(e)[:80]} — 可能是连接被拒绝、DNS 解析失败或协议错误"],
+                "indicators": [f"[-] 请求异常: {str(e)[:80]} — 可能是连接被拒绝、DNS 解析失败或协议错误"],
             })
 
     if findings:
@@ -118,9 +118,9 @@ async def bb_host_inject(
         results.append("")
 
     results.append("[*] Host 头注入漏洞可能的影响:")
-    results.append("  🔹 密码重置投毒 — 用户收到的重置链接指向攻击者域名")
-    results.append("  🔹 Web 缓存污染 — 将恶意内容缓存到 CDN")
-    results.append("  🔹 虚拟主机绕过 — 访问预期的其他虚拟站点")
+    results.append("  - 密码重置投毒 — 用户收到的重置链接指向攻击者域名")
+    results.append("  - Web 缓存污染 — 将恶意内容缓存到 CDN")
+    results.append("  - 虚拟主机绕过 — 访问预期的其他虚拟站点")
     results.append("")
     results.append("[*] 手动验证:")
     results.append("  curl -H 'Host: evil.com' {url}")

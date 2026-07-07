@@ -74,17 +74,17 @@ async def bb_csrf(
                 for token_name in csrf_token_names:
                     if token_name in inp_lower:
                         has_csrf = True
-                        results.append(f"      ✅ CSRF Token: {inp}")
+                        results.append(f"      [+] CSRF Token: {inp}")
                         break
                 if has_csrf:
                     break
 
             if not has_csrf:
-                results.append(f"      ❌ 未检测到 CSRF Token — 可能存在 CSRF 风险")
+                results.append(f"      [-] 未检测到 CSRF Token — 可能存在 CSRF 风险")
 
             # 如果是 GET 表单且无 Token，风险更高
             if method == "GET" and not has_csrf:
-                results.append(f"      ⚠️  GET 表单且无 Token — 高危")
+                results.append(f"      [!]  GET 表单且无 Token — 高危")
             results.append("")
     else:
         results.append("[*] 页面中未发现表单")
@@ -97,12 +97,12 @@ async def bb_csrf(
         if samesite:
             results.append(f"[*] SameSite: {samesite.group(1)}")
             if samesite.group(1).lower() == "none":
-                results.append("  ⚠️ SameSite=None — 跨站请求可携带 Cookie")
+                results.append("  [!] SameSite=None — 跨站请求可携带 Cookie")
         else:
             results.append("[!] Cookie 未设置 SameSite 属性 — 默认行为因浏览器而异")
         secure = "Secure" in set_cookie
         httponly = "HttpOnly" in set_cookie
-        results.append(f"  Secure: {'✅' if secure else '❌'} | HttpOnly: {'✅' if httponly else '❌'}")
+        results.append(f"  Secure: {'[+]' if secure else '[-]'} | HttpOnly: {'[+]' if httponly else '[-]'}")
     else:
         results.append("[*] 未返回 Set-Cookie")
 
@@ -125,10 +125,10 @@ async def bb_csrf(
     # 4. 安全建议
     results.append("")
     results.append("[*] CSRF 防护建议:")
-    results.append("  ✅ 使用 Anti-CSRF Token")
-    results.append("  ✅ 使用 SameSite=Strict/Lax Cookie")
-    results.append("  ✅ 校验 Referer/Origin 头")
-    results.append("  ✅ 敏感操作使用 POST + Token")
-    results.append("  ✅ 添加二次验证（密码/验证码）")
+    results.append("  [+] 使用 Anti-CSRF Token")
+    results.append("  [+] 使用 SameSite=Strict/Lax Cookie")
+    results.append("  [+] 校验 Referer/Origin 头")
+    results.append("  [+] 敏感操作使用 POST + Token")
+    results.append("  [+] 添加二次验证（密码/验证码）")
 
     return "\n".join(results)
