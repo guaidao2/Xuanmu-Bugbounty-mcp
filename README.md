@@ -163,7 +163,7 @@ bb_fingerprint url="https://example.com"
 
 | 工具 | 功能 | 特有参数 |
 |------|------|---------|
-| `bb_send` | 手工 HTTP 发包 — 自定义方法/头/Body | url, method, headers, body, content_type, follow_redirects |
+| `bb_send` | 手工 HTTP 发包 — JSON/form/multipart/文件上传 | url, method, headers, body, content_type, files, follow_redirects |
 | `bb_payload` | Payload 工厂 — 9 类漏洞 x 6 种编码 | vuln_type, encode, count |
 | `bb_oob` | OOB 外带辅助 — 回调标识/Payload 建议 | mode, callback_url |
 | `bb_idor` | IDOR 越权检测 — 双 Token 对比 + 序号枚举 | url, token_owner, token_attacker, param, method |
@@ -228,9 +228,26 @@ bb_session      steps='[
   {"method":"GET","url":"https://target.com/api/profile"}
 ]'
 
-# 7. 生成报告
+# 7. 生成报告 + bb_send 全格式示例
 bb_report       vuln_type="sqli" target="https://target.com/page?id=1" \
                 payload="' OR 1=1 -- " impact="可获取数据库所有数据"
+
+# bb_send: JSON 自动识别
+bb_send         url="https://api.example.com/login" method="POST" \
+                body='{"user":"admin","pass":"test"}'
+
+# bb_send: Form 自动识别
+bb_send         url="https://example.com/search" method="POST" \
+                body="q=test&page=1"
+
+# bb_send: 文件上传 (multipart/form-data)
+bb_send         url="https://example.com/upload" method="POST" \
+                files="file=/path/to/shell.php" body="action=upload"
+
+# bb_send: XML 手动指定 Content-Type
+bb_send         url="https://example.com/api" method="POST" \
+                headers="Content-Type: application/xml" \
+                body='<?xml version="1.0"?><root>data</root>'
 ```
 
 ### 带认证扫描

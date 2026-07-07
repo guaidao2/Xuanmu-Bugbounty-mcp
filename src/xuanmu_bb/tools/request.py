@@ -1,6 +1,7 @@
-"""手工 HTTP 发包工具 — 兼容 JSON/form 自动识别"""
+"""手工 HTTP 发包工具 — JSON/form/multipart 全格式兼容"""
 
 import json
+import os as _os
 from typing import Optional
 
 from ..client import HttpClient
@@ -13,21 +14,26 @@ async def bb_send(
     headers: Optional[str] = None,
     body: Optional[str] = None,
     content_type: Optional[str] = None,
+    files: Optional[str] = None,
     follow_redirects: bool = True,
     proxy: Optional[str] = None,
     cookie: Optional[str] = None, auth_token: Optional[str] = None,
     timeout: int = 30,
 ) -> str:
     """
-    手工 HTTP 发包 — 自定义方法/头/Body，自动识别 JSON/form
+    手工 HTTP 发包 — 支持 JSON / form / multipart / 文件上传 / XML / 纯文本
 
     Args:
         url: 目标 URL
         method: 请求方法（GET/POST/PUT/DELETE/OPTIONS/PATCH/HEAD）
-        headers: 自定义请求头，JSON 格式如 {"X-Custom": "value"} 或 key:value 分行格式
-        body: 请求体。JSON 格式（{"key":"value"}）自动设置 Content-Type: application/json；
-              form 格式（key=value&foo=bar）自动设置 Content-Type: application/x-www-form-urlencoded
-        content_type: 手动指定 Content-Type（会覆盖自动检测）
+        headers: 自定义请求头，JSON 格式 {"X-Custom":"v"} 或 key:value 分行格式
+        body: 请求体。自动识别：
+              {"key":"value"} -> JSON
+              key=value&foo=bar -> form
+              <root>data</root> -> XML（需配合 content_type="application/xml"）
+        content_type: 手动指定 Content-Type（覆盖自动检测）
+        files: 文件上传，格式 "field=/path/to/file" 或逗号分隔多个 "f1=/a.txt,f2=/b.png"
+              若路径不存在则作为普通文本字段值
         follow_redirects: 是否跟随重定向（默认 True）
         proxy: 代理地址
         cookie: Cookie
@@ -52,6 +58,26 @@ async def bb_send(
                     k, v = line.split(":", 1)
                     custom_headers[k.strip()] = v.strip()
 
+    # --- 文件上传处理 ---
+    file_dict = None
+    has_files = False
+    if files:
+        file_dict = {}
+        for item in files.split(","):
+            item = item.strip()
+            if "=" in item:
+                key, path = item.split("=", 1)
+                key, path = key.strip(), path.strip()
+                if _os.path.isfile(path):
+                    file_dict[key] = open(path, "rb")
+                    has_files = True
+                else:
+                    # 路径不存在，作为普通文本字段
+                    file_dict[key] = path
+        if has_files:
+            # multipart 不需要我们手动设 Content-Type，httpx 会自动加 boundary
+            custom_headers.pop("Content-Type", None)
+
     # --- JSON 自动检测 ---
     is_json = False
     json_body = None
@@ -68,7 +94,6 @@ async def bb_send(
     # Content-Type 处理
     if content_type:
         custom_headers["Content-Type"] = content_type
-        # 手动指定了 json content-type，尝试解析
         if "json" in content_type and body and not is_json:
             try:
                 json_body = json.loads(body.strip())
@@ -77,7 +102,7 @@ async def bb_send(
                 pass
     elif is_json:
         custom_headers["Content-Type"] = "application/json"
-    elif body and method in ("POST", "PUT", "PATCH"):
+    elif body and method in ("POST", "PUT", "PATCH") and not has_files:
         custom_headers["Content-Type"] = "application/x-www-form-urlencoded"
 
     result = []
@@ -91,6 +116,9 @@ async def bb_send(
     if body:
         result.append("")
         result.append(body[:2000])
+    if has_files:
+        result.append("")
+        result.append(f"[Files] {files}")
     if cookie:
         result.append(f"Cookie: {cookie[:200]}")
 
@@ -98,8 +126,14 @@ async def bb_send(
     client = HttpClient(timeout=timeout, proxy=proxy, cookie=cookie, auth_token=auth_token)
 
     try:
-        # 根据类型发送
-        if is_json and json_body is not None:
+        # 根据类型选择发送方式
+        if has_files and file_dict:
+            resp = await client.request(
+                method=method, url=url,
+                files=file_dict, data=body,
+                headers=custom_headers, follow_redirects=follow_redirects,
+            )
+        elif is_json and json_body is not None:
             resp = await client.request(
                 method=method, url=url, json_data=json_body,
                 headers=custom_headers, follow_redirects=follow_redirects,
@@ -149,6 +183,12 @@ async def bb_send(
     except Exception as e:
         result.append("")
         result.append(f"[!] Request failed: {e}")
+    finally:
+        # 关闭打开的文件句柄
+        if file_dict:
+            for v in file_dict.values():
+                if hasattr(v, "close"):
+                    v.close()
 
     result.append("")
     result.append("=" * 60)
