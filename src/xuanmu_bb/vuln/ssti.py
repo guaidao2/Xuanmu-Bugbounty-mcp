@@ -1,11 +1,14 @@
-"""SSTI 模板注入检测工具"""
+"""SSTI 模板注入检测 — 结构化输出 + 二次确认"""
 
 import re
 from typing import Optional
 
 from ..client import HttpClient
 from ..data import SSTI_PAYLOADS
-from ..utils import normalize_url, extract_params_from_url, build_url_with_param, run_waf_precheck
+from ..utils import (
+    normalize_url, extract_params_from_url, build_url_with_param,
+    merge_payloads, ResultBuilder, run_waf_precheck_structured,
+)
 
 
 async def bb_ssti(
@@ -19,51 +22,43 @@ async def bb_ssti(
     request_delay: float = 0.5,
     method: str = "GET",
     body: str = "",
-) -> str:
-    """
-    SSTI 检测 — 多模板引擎盲检测
+    custom_payloads: str = "",
+) -> dict:
+    """SSTI 检测 — 多模板引擎盲检测。
 
     Args:
         url: 目标 URL（含参数）
-        params: 参数字段名（逗号分隔）
-        proxy: 代理地址（可选）
-        cookie: Cookie（可选）
-        timeout: 超时秒数（默认 15）
-
-    Returns:
-        检测结果及模板引擎识别
+        custom_payloads: 自定义 SSTI payload（逗号分隔）
     """
     url = normalize_url(url)
-    results = []
-    results.append(f"[*] SSTI 检测目标: {url}")
-    results.append("")
+    rb = ResultBuilder("bb_ssti", url)
+
+    waf = await run_waf_precheck_structured(url, waf_mode=waf_mode, request_delay=request_delay,
+                                            proxy=proxy, cookie=cookie, auth_token=auth_token)
+    rb.set_waf(waf["waf_name"], waf["suggestions"])
 
     client = HttpClient(timeout=timeout, proxy=proxy, cookie=cookie, auth_token=auth_token)
-
-    # WAF 预检（使用公共函数）
-    waf_lines = await run_waf_precheck(url, waf_mode=waf_mode, request_delay=request_delay,
-                                       proxy=proxy, cookie=cookie, auth_token=auth_token)
-    results.extend(waf_lines)
+    payloads = merge_payloads(SSTI_PAYLOADS, custom_payloads, "custom")
+    rb.data["metadata"]["payload_count"] = len(payloads)
 
     test_params = extract_params_from_url(url, params)
-
     if not test_params:
-        results.append("[!] 未找到参数，请提供带参数的 URL")
-        return "\n".join(results)
+        rb.add_suggestion("未找到参数 — 请提供带参数的 URL 或通过 params= 指定")
+        return rb.finalize("error")
+    rb.set_params_tested(test_params)
 
-    # 先发一个正常请求拿基线
     try:
         base_resp = await client.get(url)
-        base_body = base_resp.text
+        rb.inc_requests()
     except Exception:
-        base_body = ""
+        pass
 
     findings = []
 
     for param in test_params:
-        for entry in SSTI_PAYLOADS:
+        for entry in payloads:
             payload = entry["payload"]
-            engine = entry["engine"]
+            engine = entry.get("engine", "custom")
 
             try:
                 new_url = build_url_with_param(url, param, payload)
@@ -71,42 +66,62 @@ async def bb_ssti(
                     resp = await client.post(url, data=body or {param: payload})
                 else:
                     resp = await client.get(new_url)
+                rb.inc_requests()
                 resp_body = resp.text
 
-                # 检测 7*7=49 计算
-                payload_raw = entry["payload"]
-                if re.search(r'\b49\b', resp_body) and payload_raw not in resp_body:
-                    findings.append({
+                # 7*7=49 数学计算执行
+                if re.search(r'\b49\b', resp_body) and payload not in resp_body:
+                    finding = {
                         "param": param,
                         "payload": payload,
+                        "type": "ssti",
                         "engine": engine,
-                        "indicator": "数学计算执行: 7*7 -> 49（确认模板执行）",
-                    })
-                elif payload_raw in resp_body and "49" in resp_body:
-                    pass  # payload 被反射回显，非执行
+                        "severity": "HIGH",
+                        "evidence": "数学计算执行: 7*7 -> 49（确认模板引擎执行）",
+                        "status_code": resp.status_code,
+                        "verified": False,
+                    }
+                    # 二次确认: 试 8*8=64
+                    try:
+                        verify_payload = payload.replace("7*7", "8*8").replace("7*'7'", "8*'8'")
+                        if verify_payload != payload:
+                            vurl = build_url_with_param(url, param, verify_payload)
+                            if method.upper() == "POST":
+                                vresp = await client.post(url, data=body or {param: verify_payload})
+                            else:
+                                vresp = await client.get(vurl)
+                            rb.inc_requests()
+                            if re.search(r'\b64\b', vresp.text):
+                                finding["verified"] = True
+                                finding["verified_by"] = "二次确认: 8*8 -> 64"
+                                finding["severity"] = "CRITICAL"
+                    except Exception:
+                        pass
+                    findings.append(finding)
 
-                # 检测 config 泄露（Jinja2）
+                # Config 泄露
                 elif "config" in resp_body.lower() and "SECRET_KEY" in resp_body:
                     findings.append({
                         "param": param,
                         "payload": payload,
+                        "type": "ssti",
                         "engine": "Jinja2",
-                        "indicator": "Config 对象泄露",
+                        "severity": "CRITICAL",
+                        "evidence": "Config 对象泄露，包含 SECRET_KEY",
+                        "status_code": resp.status_code,
+                        "verified": True,
+                        "verified_by": "响应中包含敏感配置信息",
                     })
 
             except Exception:
                 pass
 
-    if not findings:
-        results.append("[-] 未检测到 SSTI 注入")
-    else:
-        results.append(f"[!] 发现 {len(findings)} 个 SSTI 注入点:")
-        results.append("")
-        for f in findings:
-            results.append(f"  参数: {f['param']}")
-            results.append(f"  引擎: {f['engine']}")
-            results.append(f"  Payload: {f['payload']}")
-            results.append(f"  指标: {f['indicator']}")
-            results.append("")
+    for f in findings:
+        rb.add_finding(f)
 
-    return "\n".join(results)
+    if any(f.get("verified") for f in findings):
+        rb.add_suggestion("确认存在 SSTI 模板注入，根据引擎类型选择 RCE payload")
+        engine = findings[0].get("engine", "custom")
+        rb.add_suggestion(f"引擎: {engine}，可尝试对应的 RCE payload")
+
+    return rb.finalize()
