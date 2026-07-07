@@ -7,7 +7,8 @@ import mmap
 from typing import Optional
 
 from ..client import HttpClient
-from ..data.fingerprints_enhanced import ENHANCED_FINGERPRINTS, CATEGORIES, FAVICON_MAP
+from ..data.fingerprints_enhanced import ENHANCED_FINGERPRINTS, CATEGORIES, FAVICON_MAP as ENHANCED_FAVICON_MAP
+from ..data.fingerprints_hub import HUB_FINGERPRINTS, HUB_FAVICON_MAP
 from ..data.fingerprints import FINGERPRINTS as BUILTIN_FP, WAF_SIGNATURES
 from ..data import FINGERPRINTS as DATA_FP
 from ..utils import normalize_url, extract_title, ResultBuilder
@@ -278,8 +279,13 @@ async def bb_fingerprint(
 
     detected = {}  # name -> {category, version, confidence, source}
 
-    # ── 1. 增强指纹库检测 ──
-    for fp in ENHANCED_FINGERPRINTS:
+    # ── 合并所有指纹库 ──
+    all_fingerprints = list(ENHANCED_FINGERPRINTS) + list(HUB_FINGERPRINTS)
+    merged_favicon_map = dict(ENHANCED_FAVICON_MAP)
+    merged_favicon_map.update(HUB_FAVICON_MAP)
+
+    # ── 1. 增强指纹库 + Hub 指纹库检测 ──
+    for fp in all_fingerprints:
         method = fp.get("method", "score")
         name = fp["name"]
         version = ""
@@ -351,7 +357,7 @@ async def bb_fingerprint(
     if favicon_hash is not None:
         rb.inc_requests()
         rb.data["metadata"]["favicon_hash"] = favicon_hash
-        tech_name = FAVICON_MAP.get(favicon_hash)
+        tech_name = merged_favicon_map.get(favicon_hash)
         if tech_name:
             # 没被其他方法检测到才追加
             already = any(k == tech_name for k in detected)
@@ -380,7 +386,7 @@ async def bb_fingerprint(
     meta_gens = _extract_meta_generator(body)
     for gen in meta_gens:
         rb.data["metadata"]["meta_generator"] = gen
-        for fp in ENHANCED_FINGERPRINTS:
+        for fp in all_fingerprints:
             if fp["name"].lower() in gen.lower():
                 if fp["name"] not in detected:
                     detected[fp["name"]] = {
@@ -391,7 +397,7 @@ async def bb_fingerprint(
                     }
 
     # ── 6. 隐含技术推导 ──
-    all_fp = ENHANCED_FINGERPRINTS + yaml_fp
+    all_fp = all_fingerprints + yaml_fp
     detected_names = set(detected.keys())
     implied = _deduce_implies(detected_names, all_fp)
     for name in implied:
