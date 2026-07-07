@@ -106,19 +106,22 @@ bb_fingerprint url="https://example.com"
 
 ## 全部 39 个工具
 
+> 以下工具凡涉及 HTTP 请求的，均支持通用认证参数：`auth_token`（Bearer Token）、`cookie`、`proxy`、`timeout`。
+> 漏洞检测类工具额外支持：`waf_mode`、`method`（GET/POST）、`body`、`custom_payloads`。
+
 ### 侦察模块
 
-| 工具 | 功能 | 关键参数 |
+| 工具 | 功能 | 特有参数 |
 |------|------|---------|
 | `bb_ping` | 存活探测 — TCP + HTTP 双重检测 | target |
 | `bb_port_scan` | 端口扫描 — Top100/自定义范围 | target, ports, concurrent |
-| `bb_subdomain` | 子域名枚举 — DNS 批量解析 | domain, wordlist |
-| `bb_fingerprint` | **增强指纹识别** — 2300+指纹/27分类/favicon哈希 | url, auth_token, cookie |
-| `bb_dir_scan` | 目录爆破 — 内置 150+ 敏感路径 | url, wordlist, concurrent |
+| `bb_subdomain` | 子域名枚举 — DNS 批量解析 | domain, wordlist, concurrent |
+| `bb_fingerprint` | **增强指纹识别** — 2300+指纹/27分类/favicon哈希 | url |
+| `bb_dir_scan` | 目录爆破 — 内置 150+ 敏感路径 | url, wordlist, status_filter, concurrent |
 
 ### 漏洞检测模块
 
-| 工具 | 功能 | 关键参数 |
+| 工具 | 功能 | 特有参数 |
 |------|------|---------|
 | `bb_sqli` | SQL 注入 — 报错/布尔/时间盲注 + 二次确认 | url, params, custom_payloads |
 | `bb_nosqli` | NoSQL 注入 — MongoDB \$ne/\$gt/\$regex | url, params |
@@ -130,44 +133,58 @@ bb_fingerprint url="https://example.com"
 | `bb_open_redirect` | 开放重定向 — 参数扫描+跳转测试 | url, params |
 | `bb_file_upload` | 文件上传绕过 — 多扩展名/MIME/截断 | url |
 | `bb_csrf` | CSRF 检测 — Token/SameSite/Referer 分析 | url |
-| `bb_xxe` | XXE 检测 — 经典/Blind/SVG/XInclude | url, body |
+| `bb_xxe` | XXE 检测 — 经典/Blind/SVG/XInclude | url, body, content_type |
 | `bb_lfi` | 路径遍历 — ../遍历/PHP filter + 确认 | url, params, custom_payloads |
 | `bb_host_inject` | Host 头注入 — 9 种攻击场景 | url |
 | `bb_takeover` | 子域名接管 — CNAME+50+云服务匹配 | domain |
-| `bb_race` | 条件竞争 — 并发请求+响应差异分析 | url, method, concurrent |
+| `bb_race` | 条件竞争 — 并发请求+响应差异分析 | url, method, data, concurrent |
 
 ### 认证安全模块
 
-| 工具 | 功能 |
-|------|------|
-| `bb_jwt_decode` | JWT 解码 — 解析 Header/Payload |
-| `bb_jwt_analyze` | JWT 安全分析 — 漏洞检测+攻击建议 |
-| `bb_jwt_crack` | JWT 密钥爆破 — HMAC 字典攻击 |
-| `bb_jwt_attack` | JWT 攻击 — None/KID注入/算法混淆 |
-| `bb_graphql` | GraphQL 扫描 — Introspection/批量/递归 |
+| 工具 | 功能 | 特有参数 |
+|------|------|---------|
+| `bb_jwt_decode` | JWT 解码 — 解析 Header/Payload | token |
+| `bb_jwt_analyze` | JWT 安全分析 — 漏洞检测+攻击建议 | token |
+| `bb_jwt_crack` | JWT 密钥爆破 — HMAC 字典攻击 | token, wordlist |
+| `bb_jwt_attack` | JWT 攻击 — None/KID注入/算法混淆 | token, mode, payload_override, public_key |
+| `bb_graphql` | GraphQL 扫描 — Introspection/批量/递归 | url |
 
 ### 信息提取模块
 
-| 工具 | 功能 |
-|------|------|
-| `bb_extract` | URL/Endpoint 提取 — HTML+JS分析 |
-| `bb_secrets` | 敏感信息检测 — 20 种正则模式 |
-| `bb_headers` | 安全头审计 — 8 项评分+修复建议 |
-| `bb_param_discover` | 参数自动发现 — 表单/查询/JSON/JS |
-| `bb_js_analyze` | JS 深度分析 — API路由/Sourcemap/硬编码/WebSocket |
+| 工具 | 功能 | 特有参数 |
+|------|------|---------|
+| `bb_extract` | URL/Endpoint 提取 — HTML+JS分析 | url, depth |
+| `bb_secrets` | 敏感信息检测 — 20 种正则模式 | url, check_js |
+| `bb_headers` | 安全头审计 — 8 项评分+修复建议 | url |
+| `bb_param_discover` | 参数自动发现 — 表单/查询/JSON/JS | url, depth |
+| `bb_js_analyze` | JS 深度分析 — API路由/Sourcemap/硬编码/WebSocket | url |
 
 ### 工具模块
 
-| 工具 | 功能 |
-|------|------|
-| `bb_send` | 手工 HTTP 发包 — 自定义方法/头/Body |
-| `bb_payload` | Payload 工厂 — 9 类漏洞 x 6 种编码 |
-| `bb_oob` | OOB 外带辅助 — 回调标识/Payload 建议 |
-| `bb_idor` | IDOR 越权检测 — 双 Token 对比 + 序号枚举 |
-| `bb_cloud_check` | 云服务安全 — S3/元数据/云配置泄露 |
-| `bb_waf_check` | WAF 指纹识别 — 14 种 WAF + 绕过建议 |
-| `bb_session` | 多步骤流程 — Session保持 + 请求链 |
-| `bb_report` | 漏洞报告生成 — SRC 格式 Markdown |
+| 工具 | 功能 | 特有参数 |
+|------|------|---------|
+| `bb_send` | 手工 HTTP 发包 — 自定义方法/头/Body | url, method, headers, body, content_type, follow_redirects |
+| `bb_payload` | Payload 工厂 — 9 类漏洞 x 6 种编码 | vuln_type, encode, count |
+| `bb_oob` | OOB 外带辅助 — 回调标识/Payload 建议 | mode, callback_url |
+| `bb_idor` | IDOR 越权检测 — 双 Token 对比 + 序号枚举 | url, token_owner, token_attacker, param, method |
+| `bb_cloud_check` | 云服务安全 — S3/元数据/云配置泄露 | url |
+| `bb_waf_check` | WAF 指纹识别 — 14 种 WAF + 绕过建议 | url |
+| `bb_session` | 多步骤流程 — Session保持 + 请求链 | steps (JSON) |
+| `bb_report` | 漏洞报告生成 — SRC 格式 Markdown | vuln_type, target, param, payload, impact, detail, poc |
+
+### 通用参数说明
+
+| 参数 | 适用工具 | 说明 |
+|------|---------|------|
+| `auth_token` | 所有 HTTP 工具 | Bearer Token，自动添加 `Authorization: Bearer xxx` 头 |
+| `cookie` | 所有 HTTP 工具 | Cookie 字符串，自动添加 `Cookie: xxx` 头 |
+| `proxy` | 所有 HTTP 工具 | 代理地址，如 `http://127.0.0.1:8080` |
+| `timeout` | 所有 HTTP 工具 | 请求超时秒数（默认 15） |
+| `waf_mode` | 漏洞检测 | `off` / `safe`（降速+UA轮换）/ `aggressive`（尝试绕过） |
+| `method` | 漏洞检测 | `GET` 或 `POST`，默认 GET |
+| `body` | 漏洞检测 | POST 请求体，如 `username=admin&password=test` |
+| `custom_payloads` | sqli/xss/ssti/cmdi/ssrf/lfi | 逗号分隔的自定义 Payload，与内置 Payload 合并执行 |
+| `request_delay` | 漏洞检测+dir_scan | 请求间隔秒数，检测到 WAF 后自动升为 3s |
 
 ---
 
