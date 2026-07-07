@@ -1,4 +1,4 @@
-"""手工 HTTP 发包工具 — 支持原始请求和拆解参数模式"""
+"""手工 HTTP 发包工具 — 兼容 JSON/form 自动识别"""
 
 import json
 from typing import Optional
@@ -19,17 +19,19 @@ async def bb_send(
     timeout: int = 30,
 ) -> str:
     """
-    手工 HTTP 发包 — 自定义方法/头/Body 发送请求
+    手工 HTTP 发包 — 自定义方法/头/Body，自动识别 JSON/form
 
     Args:
         url: 目标 URL
         method: 请求方法（GET/POST/PUT/DELETE/OPTIONS/PATCH/HEAD）
-        headers: 自定义请求头，JSON 格式，如 {"X-Custom": "value"}
-        body: 请求体内容
-        content_type: Content-Type（快捷设置，会覆盖 headers 中的同名头）
+        headers: 自定义请求头，JSON 格式如 {"X-Custom": "value"} 或 key:value 分行格式
+        body: 请求体。JSON 格式（{"key":"value"}）自动设置 Content-Type: application/json；
+              form 格式（key=value&foo=bar）自动设置 Content-Type: application/x-www-form-urlencoded
+        content_type: 手动指定 Content-Type（会覆盖自动检测）
         follow_redirects: 是否跟随重定向（默认 True）
-        proxy: 代理地址（可选）
-        cookie: Cookie（可选）
+        proxy: 代理地址
+        cookie: Cookie
+        auth_token: Bearer Token
         timeout: 超时秒数（默认 30）
 
     Returns:
@@ -44,19 +46,43 @@ async def bb_send(
         try:
             custom_headers = json.loads(headers)
         except (json.JSONDecodeError, TypeError):
-            # 尝试 key:value 分行格式
             for line in headers.split("\n"):
                 line = line.strip()
                 if ":" in line:
                     k, v = line.split(":", 1)
                     custom_headers[k.strip()] = v.strip()
 
-    if content_type and "Content-Type" not in custom_headers:
+    # --- JSON 自动检测 ---
+    is_json = False
+    json_body = None
+
+    if body:
+        body_stripped = body.strip()
+        if body_stripped.startswith("{") or body_stripped.startswith("["):
+            try:
+                json_body = json.loads(body_stripped)
+                is_json = True
+            except (json.JSONDecodeError, ValueError):
+                is_json = False
+
+    # Content-Type 处理
+    if content_type:
         custom_headers["Content-Type"] = content_type
+        # 手动指定了 json content-type，尝试解析
+        if "json" in content_type and body and not is_json:
+            try:
+                json_body = json.loads(body.strip())
+                is_json = True
+            except (json.JSONDecodeError, ValueError):
+                pass
+    elif is_json:
+        custom_headers["Content-Type"] = "application/json"
+    elif body and method in ("POST", "PUT", "PATCH"):
+        custom_headers["Content-Type"] = "application/x-www-form-urlencoded"
 
     result = []
     result.append("=" * 60)
-    result.append("📤 请求")
+    result.append("[Request]")
     result.append("=" * 60)
     result.append(f"{method} {url}")
     if custom_headers:
@@ -72,30 +98,31 @@ async def bb_send(
     client = HttpClient(timeout=timeout, proxy=proxy, cookie=cookie, auth_token=auth_token)
 
     try:
-        resp = await client.request(
-            method=method,
-            url=url,
-            data=body,
-            headers=custom_headers,
-            follow_redirects=follow_redirects,
-        )
+        # 根据类型发送
+        if is_json and json_body is not None:
+            resp = await client.request(
+                method=method, url=url, json_data=json_body,
+                headers=custom_headers, follow_redirects=follow_redirects,
+            )
+        else:
+            resp = await client.request(
+                method=method, url=url, data=body,
+                headers=custom_headers, follow_redirects=follow_redirects,
+            )
 
         result.append("=" * 60)
-        result.append("📥 响应")
+        result.append("[Response]")
         result.append("=" * 60)
         result.append(f"HTTP {resp.status_code} {resp.reason_phrase}")
 
-        # 响应头
         result.append("")
-        result.append("[响应头]")
+        result.append("[Response Headers]")
         for k, v in resp.headers.items():
             result.append(f"  {k}: {v}")
 
-        # 响应体
         result.append("")
-        result.append(f"[响应体] ({len(resp.content):,} bytes)")
+        result.append(f"[Response Body] ({len(resp.content):,} bytes)")
 
-        # 判断内容类型决定显示方式
         ct = resp.headers.get("Content-Type", "")
         body_text = resp.text
 
@@ -105,27 +132,23 @@ async def bb_send(
                 result.append(json.dumps(parsed, ensure_ascii=False, indent=2)[:3000])
             except (json.JSONDecodeError, ValueError):
                 result.append(body_text[:2000])
-        elif "xml" in ct or "html" in ct:
-            result.append(body_text[:2000])
         else:
             result.append(body_text[:2000])
 
-        # 重定向链
         if hasattr(resp, 'history') and resp.history:
             result.append("")
-            result.append("[重定向历史]")
+            result.append("[Redirect History]")
             for h in resp.history:
-                result.append(f"  {h.status_code} → {h.headers.get('Location', 'N/A')}")
+                result.append(f"  {h.status_code} -> {h.headers.get('Location', 'N/A')}")
 
-        # 耗时
         elapsed = getattr(resp, 'elapsed', None)
         if elapsed:
             result.append("")
-            result.append(f"⏱ 耗时: {elapsed.total_seconds():.2f}s")
+            result.append(f"[Time] {elapsed.total_seconds():.2f}s")
 
     except Exception as e:
         result.append("")
-        result.append(f"[!] 请求失败: {e}")
+        result.append(f"[!] Request failed: {e}")
 
     result.append("")
     result.append("=" * 60)
